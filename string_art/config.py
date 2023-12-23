@@ -27,11 +27,11 @@ class Config:
     @property
     def high_resolution(self) -> int:
         """should be a power of 2. Set frame_diameter and string_thickness accordingly."""
-        return self.frame_diameter // self.string_thickness
+        return int(self.frame_diameter // self.string_thickness)
 
     @property
     def low_resolution(self) -> int:
-        return self.high_resolution // self.super_sampling_window_width
+        return int(self.high_resolution // self.super_sampling_window_width)
 
 
 def get_config() -> Config:

@@ -1,72 +1,72 @@
-function [A, x] = stringArt(varargin)
-    % Set Default Values
-    invertInput = true;
-    invertOutput = true;
-    numPins = 256;
-    threadThickness = 0.15;
-    frameDiameter = 614.4;
-    pinSideLength = 2;
-    superSamplingWindowWidth = 8;
-    minAngle = 0;
-    importanceMapPath = '';
-    range = 1.0;
-    dataPath = './data';
+// function [A, x] = stringArt(varargin)
+//     % Set Default Values
+//     invertInput = true;
+//     invertOutput = true;
+//     numPins = 256;
+//     threadThickness = 0.15;
+//     frameDiameter = 614.4;
+//     pinSideLength = 2;
+//     superSamplingWindowWidth = 8;
+//     minAngle = 0;
+//     importanceMapPath = '';
+//     range = 1.0;
+//     dataPath = './data';
     
-    % Parse Input Parameters
-    for i = 1 : 2 : numel(varargin)
-        switch varargin{i}
-            case 'inputFilePath'
-                fileName = varargin{i + 1};
-            case 'outputDirPath'
-                outputPath = varargin{i + 1};
-            case 'outputFileNamePrefix'
-                outputFileNamePrefix = varargin{i + 1};
-            case 'invertInput'
-                invertInput = varargin{i + 1};
-            case 'invertOutput'
-                invertOutput = varargin{i + 1};
-            case 'numPins'
-                numPins = varargin{i + 1};
-            case 'threadThickness'
-                threadThickness = varargin{i + 1};
-            case 'frameDiameter'
-                frameDiameter = varargin{i + 1};
-            case 'pinSideLength'
-                pinSideLength = varargin{i + 1};
-            case 'superSamplingWindowWidth'
-                superSamplingWindowWidth = varargin{i + 1};
-            case 'minAngle'
-                minAngle = varargin{i + 1};
-            case 'importanceMapPath'
-                importanceMapPath = varargin{i + 1};
-            case 'dataPath'
-                dataPath = varargin{i + 1};
-        end
-    end
+//     % Parse Input Parameters
+//     for i = 1 : 2 : numel(varargin)
+//         switch varargin{i}
+//             case 'inputFilePath'
+//                 fileName = varargin{i + 1};
+//             case 'outputDirPath'
+//                 outputPath = varargin{i + 1};
+//             case 'outputFileNamePrefix'
+//                 outputFileNamePrefix = varargin{i + 1};
+//             case 'invertInput'
+//                 invertInput = varargin{i + 1};
+//             case 'invertOutput'
+//                 invertOutput = varargin{i + 1};
+//             case 'numPins'
+//                 numPins = varargin{i + 1};
+//             case 'threadThickness'
+//                 threadThickness = varargin{i + 1};
+//             case 'frameDiameter'
+//                 frameDiameter = varargin{i + 1};
+//             case 'pinSideLength'
+//                 pinSideLength = varargin{i + 1};
+//             case 'superSamplingWindowWidth'
+//                 superSamplingWindowWidth = varargin{i + 1};
+//             case 'minAngle'
+//                 minAngle = varargin{i + 1};
+//             case 'importanceMapPath'
+//                 importanceMapPath = varargin{i + 1};
+//             case 'dataPath'
+//                 dataPath = varargin{i + 1};
+//         end
+//     end
     
-    % Super Sampling Window Width must be power of 2
-    assert(mod(superSamplingWindowWidth, 2) == 0);
+//     % Super Sampling Window Width must be power of 2
+//     assert(mod(superSamplingWindowWidth, 2) == 0);
     
-    % Adapt Thread Thickness to allow a domain width that is power of 2
-    threadThickness = adaptThreadThickness(threadThickness, frameDiameter);
+//     % Adapt Thread Thickness to allow a domain width that is power of 2
+//     threadThickness = adaptThreadThickness(threadThickness, frameDiameter);
 
-    imOrig = double(imread(fileName)) / 255;
+//     imOrig = double(imread(fileName)) / 255;
     
-    highRes = round(frameDiameter / threadThickness);
-    lowRes = highRes / superSamplingWindowWidth;
+//     highRes = round(frameDiameter / threadThickness);
+//     lowRes = highRes / superSamplingWindowWidth;
 
-    %Resize image
-    if size(imOrig, 1) ~= lowRes
-        imOrig = imresize(imOrig, [lowRes, lowRes]);
-    end
+//     %Resize image
+//     if size(imOrig, 1) ~= lowRes
+//         imOrig = imresize(imOrig, [lowRes, lowRes]);
+//     end
     
-    % Stretch Histogram of input image to enhance contrast
-    imOrig = stretchHistogram(imOrig);
+//     % Stretch Histogram of input image to enhance contrast
+//     imOrig = stretchHistogram(imOrig);
     
-    % Shorten range of input image to remove pure white regions
-    imOrig = imOrig * range;
+    // % Shorten range of input image to remove pure white regions
+    // imOrig = imOrig * range;
     
-    img = imOrig;
+    // img = imOrig;
     
 	targetFilePath = [outputPath '/' outputFileNamePrefix '-target.png'];
     
