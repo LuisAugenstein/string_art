@@ -51,66 +51,34 @@ class Hook:
         """
         computes the 4 possible string connections between two hooks A and B. 
         """
+        lines = [None, None, None, None]  # AB, BA, DiagAB, DiagBA
+        best_lengths = [None, None, None, None]
         a_points, b_points = self.corner_points, hookB.corner_points
-
-        best_length_AB = None
-        best_length_BA = None
-        best_length_DiagAB = None
-        best_length_DiagBA = None
 
         for i, b_point in enumerate(b_points):
             k = ConvexHull(np.vstack([a_points, b_point]))
             b_index = np.where(k.vertices == len(a_points))[0][0]
             jump_vertices = [k.vertices[(b_index + offset) % len(k.vertices)] for offset in [-1, 1]]
-            a_to_B_index, B_to_a_index = jump_vertices
-            lineAB = Line(np.vstack([k.points[a_to_B_index], b_point]))
-            lineBA = Line(np.vstack([b_point, k.points[B_to_a_index]]))
-
             rem_B = np.delete(b_points, i, axis=0)
+            lineAB = Line(np.vstack([k.points[jump_vertices[0]], b_point]))
+            lineBA = Line(np.vstack([b_point, k.points[jump_vertices[1]]]))
 
-            line = lineAB
-
-            distances_B = line.signed_distance(rem_B)
-            dir_AB = line.end - line.start
-            length_AB = np.linalg.norm(dir_AB)
-
-            if np.all(distances_B >= 0) or np.all(distances_B <= 0):
-                # AB is tangent to Hook B, test if it is AB or DiagAB
-                rem_A = np.delete(a_points, a_to_B_index, axis=0)
-                distances_A = line.distance(rem_A)
-
-                if np.sum(distances_A >= 0) == np.sum(distances_B >= 0):
-                    # AB
-                    if best_length_AB is None or best_length_AB > length_AB:
-                        best_length_AB = length_AB
-                        AB = Line(line.end_points - 0.5 * string_width * line.normal[None, :])
-                elif best_length_DiagAB is None or best_length_DiagAB > length_AB:
-                    # DiagAB
-                    DiagAB = self.get_string_width_diagonal(line, string_width, turn='left')
-                    best_length_DiagAB = length_AB
-
-            # Analyze BA
-            line = lineBA
-
-            distances_B = line.signed_distance(rem_B)
-            dir_BA = line.end - line.start
-            length_BA = np.linalg.norm(dir_BA)
-
-            if np.all(distances_B >= 0) or np.all(distances_B <= 0):
-                # BA is tangent to Hook B, test if it is BA or DiagBA
-                rem_A = np.delete(a_points, B_to_a_index, axis=0)
-                distances_A = line.distance(rem_A)
-                if np.sum(distances_A >= 0) == np.sum(distances_B >= 0):
-                    # BA
-                    if best_length_BA is None or best_length_BA > length_BA:
-                        best_length_BA = length_BA
-                        BA = Line(line.end_points - 0.5 * string_width * line.normal[None, :])
-                elif best_length_DiagBA is None or best_length_DiagBA > length_BA:
-                    # DiaBA
-                    DiagBA = self.get_string_width_diagonal(line, string_width, turn='right')
-                    best_length_DiagBA = length_BA
-
-        return [AB, BA, DiagAB, DiagBA]
+            for j, line in enumerate([lineAB, lineBA]):
+                distances_B = line.signed_distance(rem_B)
+                dir = line.end - line.start
+                length = np.linalg.norm(dir)
+                if np.all(distances_B >= 0) or np.all(distances_B <= 0):
+                    rem_A = np.delete(a_points, jump_vertices[j], axis=0)
+                    distances_A = line.distance(rem_A)
+                    if np.sum(distances_A >= 0) == np.sum(distances_B >= 0):
+                        if best_lengths[j] is None or best_lengths[j] > length:
+                            best_lengths[j] = length
+                            lines[j] = Line(line.end_points - 0.5 * string_width * line.normal[None, :])
+                    elif best_lengths[2+j] is None or best_lengths[2+j] > length:
+                        turns = ['left', 'right']
+                        lines[2+j] = self.get_string_width_diagonal(line, string_width, turns[j])
+                        best_lengths[2+j] = length
+        return lines
 
     def intersects_string(self, p1: np.ndarray, p2: np.ndarray, threshold=1e-8) -> bool:
         """
