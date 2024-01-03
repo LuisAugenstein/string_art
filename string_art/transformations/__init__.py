@@ -1,0 +1,2 @@
+from .index_transformation import indices_2D_to_1D, indices_1D_to_2D
+from .string_matrix_transormations import strings_to_sparse_matrix, sparse_matrix_to_strings

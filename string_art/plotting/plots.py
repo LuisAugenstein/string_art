@@ -1,6 +1,6 @@
-from string_art import Pin, Line, String
 import numpy as np
 from matplotlib.axes import Axes
+from string_art.entities import Pin, Line, String
 
 
 def plot_pins(ax: Axes, hook_array: list[Pin], offset=0., colored_hook_indices=[]) -> None:
@@ -14,20 +14,13 @@ def plot_lines(ax: Axes, lines: Line | list[Line]) -> None:
     if isinstance(lines, Line):
         lines = [lines]
     for l in lines:
-        ax.plot([l.start[0], l.end[0]], [l.start[1], l.end[1]], 'blue')
+        ax.plot([l.start[0], l.end[0]], [l.start[1], l.end[1]], 'black')
 
 
-def plot_strings(ax: Axes, strings: list[String]) -> None:
-    pixels = {}
+def plot_strings(ax: Axes, strings: list[String],  resolution: int, s=1) -> None:
+    image = np.zeros((resolution, resolution))
     for string in strings:
         for x, y, v in string:
             x, y = int(x), int(y)
-            if (x, y) not in pixels:
-                pixels[(x, y)] = 0
-            pixels[(x, y)] = min(1, pixels[(x, y)]+v)
-
-    points = np.zeros((len(pixels), 3))
-    for i, ((x, y), v) in enumerate(pixels.items()):
-        points[i, :] = np.array([x, y, v])
-
-    ax.scatter(points[:, 0], points[:, 1], c=points[:, 2], cmap='gray', s=0.1)
+            image[x, y] = min(1, image[x, y]+v)
+    ax.imshow(1-image, cmap='gray', vmin=0, vmax=1)

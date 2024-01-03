@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial import ConvexHull
-from string_art.line import Line
+from string_art.entities.line import Line
 from typing import Literal
 
 

@@ -4,9 +4,6 @@ from math import pi
 
 @dataclass
 class Config:
-    input_file_path = 'input/cat.png'
-    output_dir_path = 'output/cat'
-    output_filename_prefix = 'cat'
     invert_input = True
     """false -> reconstruct white area, true -> reconstruct black area"""
     invert_output = True
@@ -22,11 +19,15 @@ class Config:
     """side length of the super sampling window must be a power of 2"""
     min_angle = pi / 8
     """Minimum angle (measured from frame center) between two connected pins"""
-    data_path = './data'
+
+    @property
+    def pin_width(self) -> float:
+        """physical width of a pin in pixel"""
+        return self.pin_side_length / self.string_thickness
 
     @property
     def high_resolution(self) -> int:
-        """should be a power of 2. Set frame_diameter and string_thickness accordingly."""
+        """width of the frame in pixel. should be a power of 2. Set frame_diameter and string_thickness accordingly."""
         return int(self.frame_diameter // self.string_thickness)
 
     @property

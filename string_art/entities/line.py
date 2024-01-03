@@ -1,5 +1,5 @@
 import numpy as np
-from string_art.XiaoLinWu import XiaolinWu
+from skimage import draw
 
 String = np.ndarray
 """np.shape([N, 3]) an anti-aliased line from along a pixel grid
@@ -59,5 +59,7 @@ class Line:
         return Line(np.zeros((2, 2)))
 
     def to_string(self) -> String:
-        x, y, v = XiaolinWu(self.start, self.end)
+        start, end = np.round(self.end_points).astype(np.int32)
+        x, y = draw.line(start[0], start[1], end[0], end[1])
+        v = np.ones_like(x)
         return np.vstack([x, y, v]).T
