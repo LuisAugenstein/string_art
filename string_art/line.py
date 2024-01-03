@@ -1,7 +1,17 @@
 import numpy as np
+from string_art.XiaoLinWu import XiaolinWu
+
+String = np.ndarray
+"""np.shape([N, 3]) an anti-aliased line from along a pixel grid
+The first two columns contain the integer x,y coordinates of the pixels
+the third column contains the string intensity value of the pixel between 0 and 1"""
 
 
 class Line:
+    """
+    high level string object representing the start and end points of a string
+    """
+
     end_points: np.ndarray
     """np.shape[2, 2] first row equals start and second row the end point of the line"""
 
@@ -43,3 +53,11 @@ class Line:
 
     def reverse(self) -> 'Line':
         return Line(self.end_points[::-1])
+
+    @staticmethod
+    def empty() -> 'Line':
+        return Line(np.zeros((2, 2)))
+
+    def to_string(self) -> String:
+        x, y, v = XiaolinWu(self.start, self.end)
+        return np.vstack([x, y, v]).T

@@ -4,22 +4,22 @@ from string_art.line import Line
 from typing import Literal
 
 
-class Hook:
+class Pin:
     corner_points: np.ndarray
-    """np.shape(4, 2) array of the corner points of the hook in pixels"""
+    """np.shape(4, 2) array of the corner points of the pin in pixels"""
 
-    def __init__(self, width: float, pos2d: np.ndarray, rotZAngleRadians: float) -> None:
+    def __init__(self, position: np.ndarray, angle: float, width: float) -> None:
         """
         Parameters
         -
-        width: the width of the hook in pixels
-        position: np.shape[2] array of the position of the hook in pixels
-        angle: the Z-axis rotation angle of the hook in radians
+        width: the width of the pin in pixels
+        position: np.shape[2] array of the position of the pin in pixels
+        angle: the Z-axis rotation angle of the pin in radians
         """
+        self.pos2d = position
+        self.rotZAngleRadians = angle
         self.width = width
-        self.pos2d = pos2d
-        self.rotZAngleRadians = rotZAngleRadians
-        self.corner_points = self.__init_corner_points(width, pos2d, rotZAngleRadians)
+        self.corner_points = self.__init_corner_points(width, position, angle)
 
     def __init_corner_points(self, width: float, pos2d: np.ndarray, angle: float) -> np.ndarray:
         base_corners = 0.5 * np.array([
@@ -38,22 +38,22 @@ class Hook:
 
         Parameters
         - 
-        zero_width_diagonal: Line between two hook corners which does not account for any string width
+        zero_width_diagonal: Line between two pin corners which does not account for any string width
         """
         alpha = np.arccos(string_width / zero_width_diagonal.length)
         if turn == 'left':
             alpha *= -1
         rotation = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]])
         direction = rotation @ zero_width_diagonal.direction * string_width / 2
-        return Line((zero_width_diagonal.start + direction, zero_width_diagonal.end - direction))
+        return Line(np.vstack([zero_width_diagonal.start + direction, zero_width_diagonal.end - direction]))
 
-    def compute_strings(self, hookB: 'Hook', string_width=1.0) -> list[Line]:
+    def get_possible_connections(self, pinB: 'Pin', string_width=1.0) -> list[Line]:
         """
-        computes the 4 possible string connections between two hooks A and B. 
+        computes the 4 possible string connections between two pins A and B by connecting the specific pin corners.
         """
         lines = [None, None, None, None]  # AB, BA, DiagAB, DiagBA
         best_lengths = [None, None, None, None]
-        a_points, b_points = self.corner_points, hookB.corner_points
+        a_points, b_points = self.corner_points, pinB.corner_points
 
         for i, b_point in enumerate(b_points):
             k = ConvexHull(np.vstack([a_points, b_point]))
@@ -80,7 +80,7 @@ class Hook:
                         best_lengths[2+j] = length
         return lines
 
-    def intersects_string(self, p1: np.ndarray, p2: np.ndarray, threshold=1e-8) -> bool:
+    def intersects_string(self, line: Line, threshold=1e-8) -> bool:
         """
         Parameters
         -
@@ -89,9 +89,8 @@ class Hook:
 
         Returns
         -
-        True if the string segment intersects the hook, False otherwise
+        True if the string segment intersects the pin, False otherwise
         """
-        line = Line((p1, p2))
         distances = line.distance(self.corner_points)
         return np.any(distances <= threshold)
 
