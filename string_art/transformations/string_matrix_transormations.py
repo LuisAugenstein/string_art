@@ -28,6 +28,6 @@ def sparse_matrix_to_strings(A: csr_matrix) -> list[String]:
     strings = []
     for j in range(n_edges):
         i, _, v = find(A[:, j])
-        x, y = indices_1D_to_2D(i, resolution)
+        x, y = indices_1D_to_2D(i, resolution).T
         strings.append(np.vstack([x, y, v]).T)
     return strings

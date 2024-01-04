@@ -3,10 +3,11 @@ from string_art.config import Config
 from PIL import Image
 
 
-def create_circular_mask(size):
+def create_circular_mask(size: int, radius: float = None):
     y, x = np.ogrid[:size, :size]
     center = (size-1) // 2
-    radius = center
+    if radius is None:
+        radius = center
     mask = (x - center) ** 2 + (y - center) ** 2 <= radius ** 2
     return mask
 

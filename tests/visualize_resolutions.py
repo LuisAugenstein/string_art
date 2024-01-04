@@ -5,7 +5,7 @@ from string_art.io import load_string_matrices
 from string_art.transformations import sparse_matrix_to_strings
 from math import pi
 
-n_pins = 32
+n_pins = 16
 pin_side_length = 2
 string_thickness = 0.15
 high_resolution = 1024
