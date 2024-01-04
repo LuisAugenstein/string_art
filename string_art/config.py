@@ -18,7 +18,9 @@ class Config:
     super_sampling_window_width = 8
     """side length of the super sampling window must be a power of 2"""
     min_angle = pi / 8
-    """Minimum angle (measured from frame center) between two connected pins"""
+    """Minimum angle between two vectors from center to two pins. 
+       Prevents strings from getting spanned between two pins that are very close. 
+       A lower min_angle decreases performance since the optimizer has to consider more possible string connections."""
 
     @property
     def pin_width(self) -> float:

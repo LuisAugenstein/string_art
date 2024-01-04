@@ -3,17 +3,19 @@ from string_art.preprocessing import get_pins, circular_pin_positions
 from string_art.plotting import plot_pins, plot_strings, plot_strings, StringPresenter
 from string_art.io import load_string_matrices
 from string_art.transformations import sparse_matrix_to_strings
+from math import pi
 
-n_pins = 8
+n_pins = 32
 pin_side_length = 2
 string_thickness = 0.15
 high_resolution = 1024
+min_angle = pi / 4
 super_sampling_window_width = 4
 low_resolution = high_resolution // super_sampling_window_width
 
 pins = get_pins(n_pins, radius=0.5*high_resolution, width=pin_side_length /
                 string_thickness, pin_position_function=circular_pin_positions)
-A, B = load_string_matrices(n_pins, pin_side_length, string_thickness, high_resolution, low_resolution)
+A, B = load_string_matrices(n_pins, pin_side_length, string_thickness, min_angle, high_resolution, low_resolution)
 high_res_strings = sparse_matrix_to_strings(A)
 low_res_strings = sparse_matrix_to_strings(B)
 
