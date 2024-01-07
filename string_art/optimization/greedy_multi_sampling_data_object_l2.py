@@ -4,7 +4,7 @@ from string_art.optimization.build_image_vector import build_image_vector
 from string_art.optimization.multi_sample_correspondence_map import multi_sample_correspondence_map
 from string_art.optimization.split_apart_string_matrix import split_apart_string_matrix
 from scipy.sparse import csr_matrix, find
-from string_art.transformations import indices_high_res_to_low_res, indices_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
+from string_art.transformations import indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 from string_art.preprocessing import create_circular_mask
 import matplotlib.pyplot as plt
 
@@ -53,6 +53,8 @@ class GreedyMultiSamplingDataObjectL2:
         self.low_res_edge_pixel_indices, self.low_res_edge_pixel_values, self.low_res_corresp_edge_indices, self.lowResIndexToIndexMap = split_apart_string_matrix(
             A_low_res)
         self.A_edge_indices_to_pixel_codes = self.load_a_index_matrices(A_high_res)
+        self.A_high_res = A_high_res
+        self.A_low_res = A_low_res
 
         self.reachablePixelsMask = np.zeros(self.high_res * self.high_res, dtype=bool)
         self.reachablePixelsMask[self.highResEdgePixelIndices] = True
@@ -79,6 +81,7 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.consecutive = False
         self.incident = np.where(self.fabricable_edges)[0]
+        """edge indices that are fabricable"""
 
         self.stringList = np.zeros((0, 3), dtype=int)
         self.numStrings = 1
@@ -87,7 +90,6 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.init_state_vectors()
         self.init_lately_visited_pins()
-        self.high_res_to_low_res_map, self.low_res_to_high_res_map = self.init_index_maps(self.high_res, low_res)
 
     def init_left_and_right_edges(self, pins_to_edges: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -110,21 +112,12 @@ class GreedyMultiSamplingDataObjectL2:
             hook_to_right_edges[i, :] = pin_to_edge[right_mask, 0]
         return hook_to_left_edges, hook_to_right_edges
 
-    def init_index_maps(self, high_res, low_res) -> tuple[np.ndarray, np.ndarray]:
-        if low_res == high_res:
-            highResToLowResMap = np.arange(high_res**2, dtype=np.uint32)
-            lowResToHighResMap = np.copy(highResToLowResMap)
-            return highResToLowResMap, lowResToHighResMap
-        highResToLowResMap = indices_high_res_to_low_res(np.arange(high_res**2, dtype=np.uint32), high_res, low_res)
-        lowResToHighResMap = indices_low_res_to_high_res(np.arange(low_res**2, dtype=np.uint32), low_res, high_res)
-        return highResToLowResMap, lowResToHighResMap
-
     def load_a_index_matrices(self, A_high_res: csr_matrix) -> list[tuple[np.ndarray, np.ndarray]]:
-        AEdgeIndicesToPixelCodes = []
+        a_edge_indices_to_pixel_codes = []
         for k in range(A_high_res.shape[1]):
             indices, _, val = find(A_high_res[:, k])
-            AEdgeIndicesToPixelCodes.append((np.uint32(indices), val))
-        return AEdgeIndicesToPixelCodes
+            a_edge_indices_to_pixel_codes.append((np.uint32(indices), val))
+        return a_edge_indices_to_pixel_codes
 
     def compute_core_zone_pixels(self, min_angle, low_res):
         fac = np.clip(np.sin(0.5 * (np.pi - min_angle)), 0.0, 1.0)
@@ -161,8 +154,7 @@ class GreedyMultiSamplingDataObjectL2:
             j = np.argmin(self.f_removing[self.removable_edge_indices])
             i = self.removable_edge_indices[j]
         else:
-            j = np.argmin(self.f_adding[self.incident])
-            i = self.incident[j]
+            i = np.argmin(self.f_adding)
 
         print(f'\tF1 when picking edge Nr. {i}: {self.f_adding[i]:16.16f}')
         return self.f_adding[i], i
@@ -175,11 +167,10 @@ class GreedyMultiSamplingDataObjectL2:
 
     def choose_string_and_update(self, i):
         # Find all relevant indices
-        edge_pixel_indices = self.A_edge_indices_to_pixel_codes[i][0]
-        edge_values = self.A_edge_indices_to_pixel_codes[i][1]
-        native_res_indices = np.unique(self.high_res_to_low_res_map[edge_pixel_indices])
-
-        high_res_indices = self.low_res_to_high_res_map[native_res_indices, :].flatten()
+        # Performance improvement: Cache the find operation
+        edge_pixel_indices, _, edge_values = find(self.A_high_res[:, i])
+        native_res_indices = np.unique(indices_1D_high_res_to_low_res(edge_pixel_indices, self.high_res, self.low_res))
+        high_res_indices = indices_1D_low_res_to_high_res(native_res_indices, self.low_res, self.high_res).flatten()
 
         # pre_update_high_res_recon = self.currentRecon[high_res_indices]
         pre_update_high_res_recon_unclamped = self.current_recon_unclamped[high_res_indices]
@@ -285,8 +276,7 @@ class GreedyMultiSamplingDataObjectL2:
         high_res_sec_edge_pix_ind = self.highResEdgePixelIndices[high_res_sec_mask]
         high_res_sec_edge_pix_val = self.highResEdgePixelValues[high_res_sec_mask]
         high_res_corr_edge_ind = self.highResCorrespEdgeIndices[high_res_sec_mask]
-        high_res_to_low_res_ind = self.high_res_to_low_res_map[high_res_sec_edge_pix_ind]
-
+        high_res_to_low_res_ind = indices_1D_high_res_to_low_res(high_res_sec_edge_pix_ind, self.high_res, self.low_res)
         m = int(np.max(high_res_to_low_res_ind))
 
         output_ids = indices_2D_to_1D(high_res_to_low_res_ind, high_res_corr_edge_ind, m)
