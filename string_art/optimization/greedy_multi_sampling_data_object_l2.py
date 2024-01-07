@@ -34,9 +34,6 @@ class GreedyMultiSamplingDataObjectL2:
         importance_map = np.ones((low_res, low_res)) if importance_map is None else importance_map
         self.importance_map = build_image_vector(importance_map)
 
-        self.corrMap = multi_sample_correspondence_map(low_res, super_sampling_factor)
-
-        self.current_recon_native_res = np.zeros(self.low_res**2)
         self.currentReconSquare = np.zeros((self.high_res, self.high_res))
 
         self.numLeftEdgesPerHook = np.zeros(self.n_pins)
@@ -64,14 +61,14 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.filter_weight = 1.0 / (super_sampling_factor * super_sampling_factor)
 
-        self.highResReIndexMap = np.zeros(self.corrMap.shape[1])
-        self.lowResReIndexMap = np.zeros(self.corrMap.shape[0])
+        self.highResReIndexMap = np.zeros(self.high_res**2)
+        self.lowResReIndexMap = np.zeros(self.low_res**2)
 
         self.removalMode = False
 
-        self.allIndices = np.arange(self.corrMap.shape[1]) + 1
+        self.allIndices = np.arange(self.high_res) + 1
 
-        self.x = np.zeros(self.n_edges)
+        self.x = np.zeros((self.n_edges, 1))
         self.removable_edge_indices = np.zeros(0, dtype=int)
         self.pin_count = np.zeros(n_pins)
         self.picked_edges_sequence = np.zeros(0, dtype=int)
@@ -81,7 +78,6 @@ class GreedyMultiSamplingDataObjectL2:
         """edge indices that are fabricable"""
 
         self.stringList = np.zeros((0, 3), dtype=int)
-        self.numStrings = 1
 
         self.current_pin = 0
 
@@ -96,6 +92,19 @@ class GreedyMultiSamplingDataObjectL2:
     @property
     def current_recon(self) -> np.ndarray:
         return np.minimum(1.0, self.current_recon_unclamped)
+
+    @property
+    def current_recon_native_res(self) -> np.ndarray:
+        corr_map = multi_sample_correspondence_map(self.low_res, self.high_res)
+        return corr_map @ self.current_recon
+
+    @property
+    def residual(self) -> np.ndarray:
+        return self.importance_map.multiply(self.b_native_res - self.current_recon_native_res)
+
+    @property
+    def n_strings(self) -> int:
+        return int(np.sum(self.x))
 
     def init_left_and_right_edges(self, pins_to_edges: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -165,12 +174,6 @@ class GreedyMultiSamplingDataObjectL2:
         print(f'\tF1 when picking edge Nr. {i}: {self.f_adding[i]:16.16f}')
         return self.f_adding[i], i
 
-    def F1(self, i):
-        return self.f_removing[i]
-
-    def F2(self):
-        return np.sum((self.b_native_res - self.current_recon_native_res) ** 2)
-
     def choose_string_and_update(self, i):
         # Find all relevant indices
         # Performance improvement: Cache the find operation
@@ -208,23 +211,12 @@ class GreedyMultiSamplingDataObjectL2:
         # Update data structures
         self.x[i] += dif
 
-        # highResTransposeIndexMap = np.arange(self.high_res**2).reshape((self.high_res, self.high_res)).T.flatten()
-        # self.currentReconSquare[self.highResTransposeIndexMap[edge_pixel_indices]] = self.currentRecon[edge_pixel_indices]
-        # self.show_current()
-        # plt.imshow(self.currentReconSquare)
-
-        self.current_recon_native_res[native_res_indices] = np.dot(self.corrMap[native_res_indices, :], self.current_recon)
-
-        # test_current_recon_native_res = cv2.resize(self.currentReconSquare, (self.lowResImageWidth, self.lowResImageWidth), interpolation=cv2.INTER_NEAREST)
-
-        print(f'\tF2 when picking edge Nr. {i}: {
-              np.sum((self.importance_map * (self.b_native_res - self.current_recon_native_res))**2):16.16f}\n\n')
+        print(f'\tF2 when picking edge Nr. {i}: {np.sum(self.residual)**2:16.16f}\n\n')
         # self.show_current()
 
         pre_update_errors = self.diff_to_blank_squared_errors[native_res_indices]
         self.diff_to_blank_squared_error_sum -= np.sum(pre_update_errors)
-        self.diff_to_blank_squared_errors[native_res_indices] = (
-            self.importance_map[native_res_indices] * (self.b_native_res[native_res_indices] - self.current_recon_native_res[native_res_indices]))**2
+        self.diff_to_blank_squared_errors[native_res_indices] = self.residual[native_res_indices]**2
         post_update_errors = self.diff_to_blank_squared_errors[native_res_indices]
         self.diff_to_blank_squared_error_sum += np.sum(post_update_errors)
         self.rmseValue = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
@@ -234,9 +226,6 @@ class GreedyMultiSamplingDataObjectL2:
 
         # Update incidence vector
         self.update_incidence_vector(i)
-
-        # Increment / Decrement Num Strings
-        self.numStrings += dif
 
     def update_edge_errors(self, low_res_indices, high_res_indices, pre_update_low_res_recon,
                            pre_update_high_res_recon_unclamped, pre_update_errors, post_update_errors):
@@ -408,14 +397,14 @@ class GreedyMultiSamplingDataObjectL2:
 
                 self.latelyVisitedPins = np.append(self.latelyVisitedPins, self.current_pin)
 
-            self.stringList[self.numStrings, 1] = edge_id
+            self.stringList[self.n_strings, 1] = edge_id
 
             if hooks[0] == self.current_pin:
                 self.current_pin = hooks[1]
             else:
                 self.current_pin = hooks[0]
 
-            self.stringList[self.numStrings, 2] = self.current_pin
+            self.stringList[self.n_strings, 2] = self.current_pin
             self.pin_count[self.current_pin] += 1
 
             self.latelyVisitedPins = np.append(self.latelyVisitedPins, self.current_pin)
