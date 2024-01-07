@@ -102,10 +102,6 @@ class GreedyMultiSamplingDataObjectL2:
     def residual(self) -> np.ndarray:
         return self.importance_map.multiply(self.b_native_res - self.current_recon_native_res)
 
-    @property
-    def n_strings(self) -> int:
-        return int(np.sum(self.x))
-
     def init_left_and_right_edges(self, pins_to_edges: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
         """
         groups pin_to_edges array in 0-2 (right) and 1-3 (left) groups
@@ -223,8 +219,6 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.update_edge_errors(native_res_indices, high_res_indices, pre_update_low_res_recon,
                                 pre_update_high_res_recon_unclamped, pre_update_errors, post_update_errors)
-
-        # Update incidence vector
         self.update_incidence_vector(i)
 
     def update_edge_errors(self, low_res_indices, high_res_indices, pre_update_low_res_recon,
@@ -397,14 +391,14 @@ class GreedyMultiSamplingDataObjectL2:
 
                 self.latelyVisitedPins = np.append(self.latelyVisitedPins, self.current_pin)
 
-            self.stringList[self.n_strings, 1] = edge_id
+            self.stringList[-1, 1] = edge_id
 
             if hooks[0] == self.current_pin:
                 self.current_pin = hooks[1]
             else:
                 self.current_pin = hooks[0]
 
-            self.stringList[self.n_strings, 2] = self.current_pin
+            self.stringList[-1, 2] = self.current_pin
             self.pin_count[self.current_pin] += 1
 
             self.latelyVisitedPins = np.append(self.latelyVisitedPins, self.current_pin)
