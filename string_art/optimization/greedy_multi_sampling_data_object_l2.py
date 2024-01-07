@@ -26,7 +26,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.n_edges = self.edges_to_pins.shape[0]
         self.low_res = low_res
         self.high_res = low_res * super_sampling_factor
-        self.clamping = True
         self.hookSideBalance = True
         self.matrixPath = 'matrix_path'
 
@@ -38,8 +37,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.corrMap = multi_sample_correspondence_map(low_res, super_sampling_factor)
 
         self.current_recon_native_res = np.zeros(self.low_res**2)
-        self.currentRecon = np.zeros(self.high_res**2)
-        self.current_recon_unclamped = np.copy(self.currentRecon)
         self.currentReconSquare = np.zeros((self.high_res, self.high_res))
 
         self.numLeftEdgesPerHook = np.zeros(self.n_pins)
@@ -90,6 +87,15 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.init_state_vectors()
         self.init_lately_visited_pins()
+
+    @property
+    def current_recon_unclamped(self) -> np.ndarray:
+        """np.shape([high_res**2]) with binary values which pixel is used and which one not"""
+        return self.A_high_res @ self.x
+
+    @property
+    def current_recon(self) -> np.ndarray:
+        return np.minimum(1.0, self.current_recon_unclamped)
 
     def init_left_and_right_edges(self, pins_to_edges: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -202,20 +208,12 @@ class GreedyMultiSamplingDataObjectL2:
         # Update data structures
         self.x[i] += dif
 
-        # Update Current Recon
-        self.current_recon_unclamped[edge_pixel_indices] += dif * edge_values
-
-        if self.clamping:
-            self.currentRecon[edge_pixel_indices] = np.minimum(1.0, self.current_recon_unclamped[edge_pixel_indices])
-        else:
-            self.currentRecon[edge_pixel_indices] = self.current_recon_unclamped[edge_pixel_indices]
-
         # highResTransposeIndexMap = np.arange(self.high_res**2).reshape((self.high_res, self.high_res)).T.flatten()
         # self.currentReconSquare[self.highResTransposeIndexMap[edge_pixel_indices]] = self.currentRecon[edge_pixel_indices]
         # self.show_current()
         # plt.imshow(self.currentReconSquare)
 
-        self.current_recon_native_res[native_res_indices] = np.dot(self.corrMap[native_res_indices, :], self.currentRecon)
+        self.current_recon_native_res[native_res_indices] = np.dot(self.corrMap[native_res_indices, :], self.current_recon)
 
         # test_current_recon_native_res = cv2.resize(self.currentReconSquare, (self.lowResImageWidth, self.lowResImageWidth), interpolation=cv2.INTER_NEAREST)
 
@@ -294,21 +292,14 @@ class GreedyMultiSamplingDataObjectL2:
         high_res_re_indices = self.highResReIndexMap[high_res_sec_edge_pix_ind]
 
         # PRE UPDATE
-        if self.clamping:
-            pre_update_high_res_recon = np.minimum(1.0, pre_update_high_res_recon_unclamped)
-        else:
-            pre_update_high_res_recon = pre_update_high_res_recon_unclamped
+        pre_update_high_res_recon = np.minimum(1.0, pre_update_high_res_recon_unclamped)
 
         pre_update_high_res_val = pre_update_high_res_recon[high_res_re_indices]
 
         pre_update_high_res_val_unclamped = pre_update_high_res_recon_unclamped[high_res_re_indices]
 
-        if self.clamping:
-            pre_update_high_res_val_minus_edges = np.minimum(1.0, pre_update_high_res_val_unclamped - high_res_sec_edge_pix_val)
-            pre_update_high_res_val_plus_edges = np.minimum(1.0, pre_update_high_res_val_unclamped + high_res_sec_edge_pix_val)
-        else:
-            pre_update_high_res_val_minus_edges = pre_update_high_res_val_unclamped - high_res_sec_edge_pix_val
-            pre_update_high_res_val_plus_edges = pre_update_high_res_val_unclamped + high_res_sec_edge_pix_val
+        pre_update_high_res_val_minus_edges = np.minimum(1.0, pre_update_high_res_val_unclamped - high_res_sec_edge_pix_val)
+        pre_update_high_res_val_plus_edges = np.minimum(1.0, pre_update_high_res_val_unclamped + high_res_sec_edge_pix_val)
 
         # Filter pre update highRes edges
         filtered_pre_update_high_res_val = self.filter_weight * np.bincount(output_re_index, weights=pre_update_high_res_val)
@@ -334,18 +325,14 @@ class GreedyMultiSamplingDataObjectL2:
                                                            minlength=self.n_edges)
 
         # POST UPDATE
-        post_update_high_res_recon = self.currentRecon[high_res_indices]
+        post_update_high_res_recon = self.current_recon[high_res_indices]
         post_update_high_res_val = post_update_high_res_recon[high_res_re_indices]
 
         post_update_high_res_recon_unclamped = self.current_recon_unclamped[high_res_indices]
         post_update_high_res_val_unclamped = post_update_high_res_recon_unclamped[high_res_re_indices]
 
-        if self.clamping:
-            post_update_high_res_val_minus_edges = np.minimum(1.0, post_update_high_res_val_unclamped - high_res_sec_edge_pix_val)
-            post_update_high_res_val_plus_edges = np.minimum(1.0, post_update_high_res_val_unclamped + high_res_sec_edge_pix_val)
-        else:
-            post_update_high_res_val_minus_edges = post_update_high_res_val_unclamped - high_res_sec_edge_pix_val
-            post_update_high_res_val_plus_edges = post_update_high_res_val_unclamped + high_res_sec_edge_pix_val
+        post_update_high_res_val_minus_edges = np.minimum(1.0, post_update_high_res_val_unclamped - high_res_sec_edge_pix_val)
+        post_update_high_res_val_plus_edges = np.minimum(1.0, post_update_high_res_val_unclamped + high_res_sec_edge_pix_val)
 
         post_update_low_res_recon = self.current_recon_native_res[low_res_indices]
 
@@ -504,7 +491,7 @@ class GreedyMultiSamplingDataObjectL2:
 
     def show_current(self):
         plt.figure(1)
-        plt.imshow(np.flipud(np.reshape(1 - self.currentRecon, [self.high_res, self.high_res]).T), cmap='gray')
+        plt.imshow(np.flipud(np.reshape(1 - self.current_recon, [self.high_res, self.high_res]).T), cmap='gray')
         plt.show()
 
     def get_rmse_value(self):
