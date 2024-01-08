@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix, find
 from string_art.transformations import PinEdgeTransformer, indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 from string_art.preprocessing import create_circular_mask
 import matplotlib.pyplot as plt
+from string_art.entities import ConnectionType
 
 MIN_CIRCLE_LENGTH = 1
 
@@ -29,9 +30,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.importance_map = importance_map.T.flatten()
 
         self.currentReconSquare = np.zeros((self.high_res, self.high_res))
-
-        self.numLeftEdgesPerHook = np.zeros(self.n_pins)
-        self.numRightEdgesPerHook = np.zeros(self.n_pins)
 
         self.fabricable_edges = fabricable_edges
         # Note in the original algorithm the following two lines should be executed with unfiltered matrices, i.e., including the non-fabricable edges
@@ -313,33 +311,16 @@ class GreedyMultiSamplingDataObjectL2:
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
 
-    def update_incidence_vector(self, edge_id: int):
+    def update_incidence_vector(self, edge_index: int):
         dif = -1 if self.removalMode else 1
 
-        edge_type = edge_id % 4
-        pins = self.edges_to_pins[edge_id, :]
+        for p in self.pin_edge_transformer.edges_to_pins(edge_index):
+            self.pin_count[p] += dif
 
-        self.pin_count[pins[0]] += dif
-        self.pin_count[pins[1]] += dif
+        p1, p2 = self.pin_edge_transformer.edges_to_pins(edge_index)
 
-        hook_a, hook_b = pins[0], pins[1]
-
-        if edge_type == 1:
-            # RIGHT for hookA, LEFT for hookB
-            self.numRightEdgesPerHook[hook_a] += dif
-            self.numLeftEdgesPerHook[hook_b] += dif
-        elif edge_type == 2:
-            # LEFT for hookA, RIGHT for hookB
-            self.numLeftEdgesPerHook[hook_a] += dif
-            self.numRightEdgesPerHook[hook_b] += dif
-        elif edge_type == 3:
-            # RIGHT for hookA, RIGHT for hookB
-            self.numRightEdgesPerHook[hook_a] += dif
-            self.numRightEdgesPerHook[hook_b] += dif
-        else:  # edge_type == 4
-            # LEFT for hookA, LEFT for hookB
-            self.numLeftEdgesPerHook[hook_a] += dif
-            self.numLeftEdgesPerHook[hook_b] += dif
+        self.pin_count[p1] += dif
+        self.pin_count[p2] += dif
 
     def compute_illegal_edge_indices(self, hook, illegal_pins: np.ndarray):
         if hook == illegal_pins:
