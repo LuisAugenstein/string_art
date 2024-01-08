@@ -25,7 +25,7 @@ edges=np.repeat([(i, j) for i in pins for j in pins[i+1:]], 4, axis=0)
 ```
 
 <div align='center'>  
-  <img src="docs/pin_and_edge_visualization.png" width="350" height="350">  <img src="docs/connection_types.png" width="350" height="350">
+  <img src="docs/pin_and_edge_visualization.svg" width="350" height="350">  <img src="docs/connection_types.svg" width="350" height="350">
 </div>
 
 Note, that instead of representing an edge by its start and end pin indices $(p_i, p_j)$ we can also just define and edge by its index $e_k$. Also note, that the connection types $3$ and $4$ can be always associated to one specific edge. To assign connection types $1$ and $2$ we need to know whether the edge is ingoing or outgoing. For `n_pins` pins there are `n_edges = 4*n_choose_k(n_pins, 2)` possible edges that can be drawn. 
