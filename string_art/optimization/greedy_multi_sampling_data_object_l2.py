@@ -1,6 +1,6 @@
 import numpy as np
 from string_art.optimization.multi_sample_correspondence_map import multi_sample_correspondence_map
-from string_art.optimization.split_apart_string_matrix import split_apart_string_matrix
+from string_art.optimization.split_apart_string_matrix import get_index_to_index_map
 from scipy.sparse import csr_matrix, find
 from string_art.transformations import PinEdgeTransformer, indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 from string_art.preprocessing import create_circular_mask
@@ -23,19 +23,43 @@ class GreedyMultiSamplingDataObjectL2:
         self.A_low_res = A_low_res
         self.pin_edge_transformer = pin_edge_transformer
 
-        self.highResEdgePixelIndices, self.highResEdgePixelValues, self.highResCorrespEdgeIndices, self.highResIndexToIndexMap = split_apart_string_matrix(
-            A_high_res)
-        self.low_res_edge_pixel_indices, self.low_res_edge_pixel_values, self.low_res_corresp_edge_indices, self.lowResIndexToIndexMap = split_apart_string_matrix(
-            A_low_res)
+        self.n_edges = A_high_res.shape[1]
+        self.low_res = np.sqrt(A_low_res.shape[0]).astype(int)
+        self.high_res = np.sqrt(A_high_res.shape[0]).astype(int)
 
-        self.highResReIndexMap = np.zeros(self.high_res**2)
-        self.lowResReIndexMap = np.zeros(self.low_res**2)
+        self.high_res_index_to_index_map = get_index_to_index_map(A_high_res)
+        self.low_res_index_to_index_map = get_index_to_index_map(A_low_res)
+        self.low_res_corresp_edge_indices, self.low_res_edge_pixel_indices, self.low_res_edge_pixel_values = find(A_low_res.T)
+
+        self.highResReIndexMap = np.zeros(self.high_res**2, dtype=int)
+        self.lowResReIndexMap = np.zeros(self.low_res**2, dtype=int)
 
         self.removalMode = False
         self.x = np.zeros((self.n_edges, 1))
         self.picked_edges_sequence = np.zeros(0, dtype=int)
         self.stringList = np.zeros((0, 3), dtype=int)
-        self.init_state_vectors()
+
+        self.diff_to_blank_squared_errors = (self.importance_map * self.b_native_res)**2
+        self.diff_to_blank_squared_error_sum = np.sum(self.diff_to_blank_squared_errors)
+        self.rmse_value = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
+
+        w = self.importance_map[self.low_res_edge_pixel_indices]
+        b = self.b_native_res[self.low_res_edge_pixel_indices]
+        a = self.low_res_edge_pixel_values
+        j = self.low_res_corresp_edge_indices
+
+        sum_of_squared_errors_per_edge_adding = np.bincount(j, weights=(w*(b - a))**2, minlength=self.n_edges)
+        sum_of_squared_errors_per_edge_removing = np.bincount(j, weights=(w*(b + a))**2, minlength=self.n_edges)
+        diff_to_blank_sum_per_edge = np.bincount(j, weights=(w*b)**2)
+
+        self.f_adding = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_adding
+        self.f_removing = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_removing
+
+        """
+        The above is a faster version of 
+        for k in range(self.n_edges):
+            f_adding[k] = np.sum((self.importance_map * (self.b_native_res - A_low_res[:, k].A.squeeze()))**2)
+        """
 
     @property
     def current_recon_unclamped(self) -> np.ndarray:
@@ -44,51 +68,22 @@ class GreedyMultiSamplingDataObjectL2:
 
     @property
     def current_recon(self) -> np.ndarray:
+        """np.shape([high_res**2])"""
         return np.minimum(1.0, self.current_recon_unclamped)
 
     @property
     def current_recon_native_res(self) -> np.ndarray:
+        """np.shape([low_res**2])"""
         corr_map = multi_sample_correspondence_map(self.low_res, self.high_res)
-        return corr_map @ self.current_recon
+        return (corr_map @ self.current_recon).squeeze()
 
     @property
     def residual(self) -> np.ndarray:
-        return self.importance_map.multiply(self.b_native_res - self.current_recon_native_res).A
+        return self.importance_map * (self.b_native_res - self.current_recon_native_res)
 
     @property
     def removable_edge_indices(self) -> np.ndarray:
         return find(self.x)[0]
-
-    @property
-    def n_edges(self) -> int:
-        return self.pin_edge_transformer.n_edges
-
-    @property
-    def high_res(self) -> int:
-        return self.A_high_res.shape[0].sqrt()
-
-    @property
-    def low_res(self) -> int:
-        return self.A_low_res.shape[0].sqrt()
-
-    def init_state_vectors(self):
-        self.diff_to_blank_squared_errors = (self.importance_map * self.b_native_res)**2
-        self.diff_to_blank_squared_error_sum = np.sum(self.diff_to_blank_squared_errors)
-
-        self.rmseValue = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
-
-        W = self.importance_map[self.low_res_edge_pixel_indices]
-        b = self.b_native_res[self.low_res_edge_pixel_indices]
-        c = self.diff_to_blank_squared_errors[self.low_res_edge_pixel_indices]
-        A = self.low_res_edge_pixel_values
-        i = self.low_res_corresp_edge_indices
-
-        sum_of_squared_errors_per_edge_adding = np.bincount(i, weights=W*(b - A)**2)
-        sum_of_squared_errors_per_edge_removing = np.bincount(i, weights=W*(b + A)**2)
-        diff_to_blank_sum_per_edge = np.bincount(i, weights=c)
-
-        self.f_adding = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_adding
-        self.f_removing = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_removing
 
     def find_best_string(self) -> tuple[np.ndarray, int]:
         if self.removalMode:
@@ -142,7 +137,7 @@ class GreedyMultiSamplingDataObjectL2:
         self.diff_to_blank_squared_errors[native_res_indices] = self.residual[native_res_indices]**2
         post_update_errors = self.diff_to_blank_squared_errors[native_res_indices]
         self.diff_to_blank_squared_error_sum += np.sum(post_update_errors)
-        self.rmseValue = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
+        self.rmse_value = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
 
         self.update_edge_errors(native_res_indices, high_res_indices, pre_update_low_res_recon,
                                 pre_update_high_res_recon_unclamped, pre_update_errors, post_update_errors)
@@ -157,11 +152,11 @@ class GreedyMultiSamplingDataObjectL2:
         self.f_adding -= pre - post
         self.f_removing -= pre - post
 
-        sec_mask = np.max(self.lowResIndexToIndexMap[:, low_res_indices], axis=1).A.squeeze()
-        trunc_high_res_indices_mask = high_res_indices <= self.highResIndexToIndexMap.shape[1]
-        trunc_high_res_indices = high_res_indices[trunc_high_res_indices_mask]
-        high_res_sec_mask = np.max(self.highResIndexToIndexMap[:, trunc_high_res_indices], axis=1)
+        high_res_sec_mask = np.max(self.high_res_index_to_index_map[:, high_res_indices], axis=1).A.squeeze().astype(bool)
+        """which values of A_high_res color a pixel of the current string. 
+        Of course all the values of the column for the current string do, but others might do as well."""
 
+        sec_mask = np.max(self.low_res_index_to_index_map[:, low_res_indices], axis=1).A.squeeze().astype(bool)
         sec_edge_pix_ind = self.low_res_edge_pixel_indices[sec_mask]
 
         self.lowResReIndexMap[low_res_indices] = np.arange(low_res_indices.shape[0])
@@ -180,20 +175,21 @@ class GreedyMultiSamplingDataObjectL2:
         self.f_removing -= post_corr - pre_corr
 
         # Update intersecting pixel positions
-        high_res_sec_edge_pix_ind = self.highResEdgePixelIndices[high_res_sec_mask]
-        high_res_sec_edge_pix_val = self.highResEdgePixelValues[high_res_sec_mask]
-        high_res_corr_edge_ind = self.highResCorrespEdgeIndices[high_res_sec_mask]
+        highResCorrespEdgeIndices, highResEdgePixelIndices, highResEdgePixelValues = find(self.A_high_res.T)
+        high_res_sec_edge_pix_ind = highResEdgePixelIndices[high_res_sec_mask]
+        high_res_sec_edge_pix_val = highResEdgePixelValues[high_res_sec_mask]
+        high_res_corr_edge_ind = highResCorrespEdgeIndices[high_res_sec_mask]
         high_res_to_low_res_ind = indices_1D_high_res_to_low_res(high_res_sec_edge_pix_ind, self.high_res, self.low_res)
         m = int(np.max(high_res_to_low_res_ind))
 
         output_ids = indices_2D_to_1D(high_res_to_low_res_ind, high_res_corr_edge_ind, m)
         unique_output_ids = np.unique(output_ids)
 
-        filtered_corr_edge_ind, filtered_pix_ind = indices_1D_to_2D(unique_output_ids, m, mode='row-col')
+        filtered_corr_edge_ind, filtered_pix_ind = indices_1D_to_2D(unique_output_ids, m, mode='row-col').T
         filtered_re_indices = self.lowResReIndexMap[filtered_pix_ind]
 
         num_ids = len(unique_output_ids)
-        output_re_index = np.arange(1, num_ids + 1)
+        output_re_index = np.arange(num_ids)
         lia, locb = np.isin(output_ids, unique_output_ids, assume_unique=True)
         output_re_index = output_re_index[locb]
 
@@ -299,7 +295,7 @@ class GreedyMultiSamplingDataObjectL2:
         plt.show()
 
     def get_rmse_value(self):
-        return self.rmseValue
+        return self.rmse_value
 
     def set_removal_mode(self, mode):
         if mode != self.removalMode:
