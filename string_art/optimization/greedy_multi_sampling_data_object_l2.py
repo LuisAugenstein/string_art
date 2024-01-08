@@ -62,12 +62,8 @@ class GreedyMultiSamplingDataObjectL2:
         self.allIndices = np.arange(self.high_res) + 1
 
         self.x = np.zeros((self.n_edges, 1))
-        self.removable_edge_indices = np.zeros(0, dtype=int)
         self.pin_count = np.zeros(n_pins)
         self.picked_edges_sequence = np.zeros(0, dtype=int)
-
-        self.incident = np.arange(self.n_edges)
-        """edge indices that are available for next picking"""
 
         self.stringList = np.zeros((0, 3), dtype=int)
 
@@ -95,7 +91,7 @@ class GreedyMultiSamplingDataObjectL2:
         return self.importance_map.multiply(self.b_native_res - self.current_recon_native_res).A
 
     @property
-    def removable_edge_indices2(self) -> np.ndarray:
+    def removable_edge_indices(self) -> np.ndarray:
         return find(self.x)[0]
 
     def load_a_index_matrices(self, A_high_res: csr_matrix) -> list[tuple[np.ndarray, np.ndarray]]:
@@ -135,15 +131,17 @@ class GreedyMultiSamplingDataObjectL2:
     def init_lately_visited_pins(self):
         self.latelyVisitedPins = np.zeros((1, 0), dtype=int)
 
-    def find_best_string(self):
+    def find_best_string(self) -> tuple[np.ndarray, int]:
         if self.removalMode:
             j = np.argmin(self.f_removing[self.removable_edge_indices])
-            i = self.removable_edge_indices[j]
+            i_next_edge = self.removable_edge_indices[j]
+            loss_value = self.f_removing[i_next_edge]
         else:
-            i = np.argmin(self.f_adding)
+            i_next_edge = np.argmin(self.f_adding)
+            loss_value = self.f_adding[i_next_edge]
 
-        print(f'\tF1 when picking edge Nr. {i}: {self.f_adding[i]:16.16f}')
-        return self.f_adding[i], i
+        print(f'\tF1 when picking edge Nr. {i_next_edge}: {loss_value:16.16f}')
+        return loss_value, i_next_edge
 
     def choose_string_and_update(self, i):
         # Find all relevant indices
@@ -164,10 +162,6 @@ class GreedyMultiSamplingDataObjectL2:
                 raise ValueError(f"Edge {i} can not be removed.\n")
             else:
                 dif = -1
-
-                if (self.x[i] - 1 == 0):
-                    self.removable_edge_indices = self.removable_edge_indices[~mask]
-
                 mask = self.stringList[:, 0] == i
                 ind = np.where(mask)[0]
                 mask[:] = True
@@ -175,7 +169,6 @@ class GreedyMultiSamplingDataObjectL2:
                 self.stringList = self.stringList[mask, :]
                 self.picked_edges_sequence = self.picked_edges_sequence[mask, :]
         else:
-            self.removable_edge_indices = np.append(self.removable_edge_indices, i)
             self.stringList = np.vstack((self.stringList, [i, 0, 0]))
             self.picked_edges_sequence = np.hstack((self.picked_edges_sequence.T, [i])).T
 
@@ -348,21 +341,6 @@ class GreedyMultiSamplingDataObjectL2:
             self.numLeftEdgesPerHook[hook_a] += dif
             self.numLeftEdgesPerHook[hook_b] += dif
 
-        # Update Incidence
-        # Newly construct the incidence vector
-        # remove overused edges
-        self.incident = np.ones(self.n_edges, dtype=bool)
-
-        pins_to_outgoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='outgoing')
-        pins_to_ingoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='ingoing')
-
-        self.incident = np.where(self.incident)[0]
-
-        # Update removable edge indices
-        removable_edge_indices_bool = self.x > 0
-
-        self.removable_edge_indices = np.where(removable_edge_indices_bool)[0]
-
     def compute_illegal_edge_indices(self, hook, illegal_pins: np.ndarray):
         if hook == illegal_pins:
             return np.zeros(0, dtype=int)
@@ -382,10 +360,6 @@ class GreedyMultiSamplingDataObjectL2:
         k, _, _ = np.where(res)
 
         return k
-
-    def remove_overused_edges_from_incidence_vector(self):
-        max_used_edges = np.where(self.x >= MAX_NUM_EDGE_USAGE)[0]
-        self.incident = np.setdiff1d(self.incident, max_used_edges)
 
     def show_current(self):
         plt.figure(1)
