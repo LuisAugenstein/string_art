@@ -5,7 +5,6 @@ from scipy.sparse import csr_matrix, find
 from string_art.transformations import PinEdgeTransformer, indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 from string_art.preprocessing import create_circular_mask
 import matplotlib.pyplot as plt
-from string_art.entities import ConnectionType
 
 MIN_CIRCLE_LENGTH = 1
 
@@ -63,9 +62,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.picked_edges_sequence = np.zeros(0, dtype=int)
 
         self.stringList = np.zeros((0, 3), dtype=int)
-
-        self.current_pin = 0
-
         self.init_state_vectors()
         self.init_lately_visited_pins()
 
