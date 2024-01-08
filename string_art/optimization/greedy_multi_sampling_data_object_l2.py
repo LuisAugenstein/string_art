@@ -71,7 +71,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.pin_count = np.zeros(n_pins)
         self.picked_edges_sequence = np.zeros(0, dtype=int)
 
-        self.consecutive = False
         self.incident = np.where(self.fabricable_edges)[0]
         """edge indices that are fabricable"""
 
@@ -98,7 +97,11 @@ class GreedyMultiSamplingDataObjectL2:
 
     @property
     def residual(self) -> np.ndarray:
-        return self.importance_map.multiply(self.b_native_res - self.current_recon_native_res)
+        return self.importance_map.multiply(self.b_native_res - self.current_recon_native_res).A
+
+    @property
+    def removable_edge_indices2(self) -> np.ndarray:
+        return find(self.x)[0]
 
     def load_a_index_matrices(self, A_high_res: csr_matrix) -> list[tuple[np.ndarray, np.ndarray]]:
         a_edge_indices_to_pixel_codes = []
@@ -150,7 +153,7 @@ class GreedyMultiSamplingDataObjectL2:
     def choose_string_and_update(self, i):
         # Find all relevant indices
         # Performance improvement: Cache the find operation
-        edge_pixel_indices, _, edge_values = find(self.A_high_res[:, i])
+        edge_pixel_indices, _, _ = find(self.A_high_res[:, i])  # row_indices of pixels that are hit by string i
         native_res_indices = np.unique(indices_1D_high_res_to_low_res(edge_pixel_indices, self.high_res, self.low_res))
         high_res_indices = indices_1D_low_res_to_high_res(native_res_indices, self.low_res, self.high_res).flatten()
 
@@ -208,14 +211,14 @@ class GreedyMultiSamplingDataObjectL2:
         self.f_adding -= pre - post
         self.f_removing -= pre - post
 
-        sec_mask = np.any(self.lowResIndexToIndexMap[:, low_res_indices], axis=1)
+        sec_mask = np.max(self.lowResIndexToIndexMap[:, low_res_indices], axis=1).A.squeeze()
         trunc_high_res_indices_mask = high_res_indices <= self.highResIndexToIndexMap.shape[1]
         trunc_high_res_indices = high_res_indices[trunc_high_res_indices_mask]
-        high_res_sec_mask = np.any(self.highResIndexToIndexMap[:, trunc_high_res_indices], axis=1)
+        high_res_sec_mask = np.max(self.highResIndexToIndexMap[:, trunc_high_res_indices], axis=1)
 
         sec_edge_pix_ind = self.low_res_edge_pixel_indices[sec_mask]
 
-        self.lowResReIndexMap[low_res_indices] = np.arange(1, len(low_res_indices) + 1)
+        self.lowResReIndexMap[low_res_indices] = np.arange(low_res_indices.shape[0])
         re_indices = self.lowResReIndexMap[sec_edge_pix_ind]
 
         pre_at_indices = pre_update_errors[re_indices]
@@ -350,81 +353,42 @@ class GreedyMultiSamplingDataObjectL2:
             self.numLeftEdgesPerHook[hook_a] += dif
             self.numLeftEdgesPerHook[hook_b] += dif
 
-        if self.consecutive:
-            if self.current_pin == 0:
-                edges_to_h1, edges_to_h2 = self.pin_edge_transformer.pins_to_edges(pins)
-                self.incident = np.concatenate([edges_to_h1, edges_to_h2])
+        # Update Incidence
+        # Newly construct the incidence vector
+        self.incident = np.where(self.fabricable_edges)[0]
 
-                _, i = self.findBestString()
+        # Remove overused edges
+        self.incident = self.incident[self.x[self.incident] < MAX_NUM_EDGE_USAGE]
 
-                if i <= len(edges_to_h1):
-                    self.current_pin = pins[1]
-                else:
-                    self.current_pin = pins[0]
+        # Remove edges that belong to overused hooks
+        # TODO: this seems strange. compare with original matlab code
+        overused_hooks_edge_indices = np.concatenate(
+            self.pin_edge_transformer.pins_to_edges(self.pin_count > MAX_NUM_PIN_USAGE)[:, 0])
+        self.incident = np.setdiff1d(self.incident, overused_hooks_edge_indices)
 
-                self.latelyVisitedPins = np.append(self.latelyVisitedPins, self.current_pin)
+        pins_to_outgoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='outgoing')
+        pins_to_ingoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='ingoing')
 
-            self.stringList[-1, 1] = self.current_pin
+        # Remove edges that would lead to an imbalance of the sides of the hooks
+        if self.hookSideBalance:
+            remove_left_side_edges_mask = self.numLeftEdgesPerHook - self.numRightEdgesPerHook > 0
+            remove_right_side_edges_mask = self.numRightEdgesPerHook - self.numLeftEdgesPerHook > 0
 
-            if pins[0] == self.current_pin:
-                self.current_pin = pins[1]
-            else:
-                self.current_pin = pins[0]
+            self.incident[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
+            self.incident[pins_to_ingoing_edges[remove_right_side_edges_mask, :]] = False
 
-            self.stringList[-1, 2] = self.current_pin
-            self.pin_count[self.current_pin] += 1
+        self.incident = np.where(self.incident)[0]
 
-            self.latelyVisitedPins = np.append(self.latelyVisitedPins, self.current_pin)
+        # Update removable edge indices
+        removable_edge_indices_bool = self.x > 0
 
-            if len(self.latelyVisitedPins) == MIN_CIRCLE_LENGTH:
-                self.latelyVisitedPins = self.latelyVisitedPins[1:]
+        if self.hookSideBalance:
+            remove_left_side_edges_mask = self.numLeftEdgesPerHook < self.numRightEdgesPerHook
 
-            self.incident = self.pin_edge_transformer.pins_to_edges(self.current_pin)
+            removable_edge_indices_bool[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
+            removable_edge_indices_bool[pins_to_ingoing_edges[~remove_left_side_edges_mask, :]] = False
 
-            max_used_hooks = np.where(self.pin_count == MAX_NUM_PIN_USAGE)[0]
-            illegal_pins = np.union1d(self.latelyVisitedPins, max_used_hooks)
-            self.incident = np.setdiff1d(self.incident, self.compute_illegal_edge_indices(self.current_pin, illegal_pins))
-
-        else:
-            # Non-consecutive string path
-
-            # Update Incidence
-            # Newly construct the incidence vector
-            self.incident = np.where(self.fabricable_edges)[0]
-
-            # Remove overused edges
-            self.incident = self.incident[self.x[self.incident] < MAX_NUM_EDGE_USAGE]
-
-            # Remove edges that belong to overused hooks
-            # TODO: this seems strange. compare with original matlab code
-            overused_hooks_edge_indices = np.concatenate(
-                self.pin_edge_transformer.pins_to_edges(self.pin_count > MAX_NUM_PIN_USAGE)[:, 0])
-            self.incident = np.setdiff1d(self.incident, overused_hooks_edge_indices)
-
-            pins_to_outgoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='outgoing')
-            pins_to_ingoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='ingoing')
-
-            # Remove edges that would lead to an imbalance of the sides of the hooks
-            if self.hookSideBalance:
-                remove_left_side_edges_mask = self.numLeftEdgesPerHook - self.numRightEdgesPerHook > 0
-                remove_right_side_edges_mask = self.numRightEdgesPerHook - self.numLeftEdgesPerHook > 0
-
-                self.incident[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
-                self.incident[pins_to_ingoing_edges[remove_right_side_edges_mask, :]] = False
-
-            self.incident = np.where(self.incident)[0]
-
-            # Update removable edge indices
-            self.removable_edge_indices = self.x > 0
-
-            if self.hookSideBalance:
-                remove_left_side_edges_mask = self.numLeftEdgesPerHook - self.numRightEdgesPerHook < 0
-                remove_right_side_edges_mask = self.numRightEdgesPerHook - self.numLeftEdgesPerHook < 0
-
-                self.removable_edge_indices[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
-                self.removable_edge_indices[pins_to_ingoing_edges[remove_right_side_edges_mask, :]] = False
-
-            self.removable_edge_indices = np.where(self.removable_edge_indices)[0]
+        self.removable_edge_indices = np.where(removable_edge_indices_bool)[0]
 
     def compute_illegal_edge_indices(self, hook, illegal_pins: np.ndarray):
         if hook == illegal_pins:
@@ -461,10 +425,6 @@ class GreedyMultiSamplingDataObjectL2:
     def set_removal_mode(self, mode):
         if mode != self.removalMode:
             self.removalMode = mode
-
-            if self.removalMode:
-                if self.consecutive:
-                    raise ValueError('Removing Edges in a consecutive string chain is not allowed!')
 
     def remove_overshoot(self, num_edges):
         self.set_removal_mode(True)
