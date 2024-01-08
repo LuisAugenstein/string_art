@@ -23,17 +23,10 @@ class GreedyMultiSamplingDataObjectL2:
         self.A_low_res = A_low_res
         self.pin_edge_transformer = pin_edge_transformer
 
-        self.matrixPath = 'matrix_path'
-
-        self.currentReconSquare = np.zeros((self.high_res, self.high_res))
-
         self.highResEdgePixelIndices, self.highResEdgePixelValues, self.highResCorrespEdgeIndices, self.highResIndexToIndexMap = split_apart_string_matrix(
             A_high_res)
         self.low_res_edge_pixel_indices, self.low_res_edge_pixel_values, self.low_res_corresp_edge_indices, self.lowResIndexToIndexMap = split_apart_string_matrix(
             A_low_res)
-
-        super_sampling_factor = self.high_res // self.low_res
-        self.filter_weight = 1.0 / (super_sampling_factor * super_sampling_factor)
 
         self.highResReIndexMap = np.zeros(self.high_res**2)
         self.lowResReIndexMap = np.zeros(self.low_res**2)
@@ -41,7 +34,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.removalMode = False
         self.x = np.zeros((self.n_edges, 1))
         self.picked_edges_sequence = np.zeros(0, dtype=int)
-
         self.stringList = np.zeros((0, 3), dtype=int)
         self.init_state_vectors()
 
@@ -219,10 +211,12 @@ class GreedyMultiSamplingDataObjectL2:
         pre_update_high_res_val_plus_edges = np.minimum(1.0, pre_update_high_res_val_unclamped + high_res_sec_edge_pix_val)
 
         # Filter pre update highRes edges
-        filtered_pre_update_high_res_val = self.filter_weight * np.bincount(output_re_index, weights=pre_update_high_res_val)
-        filtered_pre_update_high_res_val_minus_edges = self.filter_weight * \
+        super_sampling_factor = self.high_res // self.low_res
+        filter_weight = 1.0 / (super_sampling_factor * super_sampling_factor)
+        filtered_pre_update_high_res_val = filter_weight * np.bincount(output_re_index, weights=pre_update_high_res_val)
+        filtered_pre_update_high_res_val_minus_edges = filter_weight * \
             np.bincount(output_re_index, weights=pre_update_high_res_val_minus_edges)
-        filtered_pre_update_high_res_val_plus_edges = self.filter_weight * \
+        filtered_pre_update_high_res_val_plus_edges = filter_weight * \
             np.bincount(output_re_index, weights=pre_update_high_res_val_plus_edges)
 
         failure_pre_update_per_edge_adding = np.bincount(filtered_corr_edge_ind,
@@ -254,10 +248,10 @@ class GreedyMultiSamplingDataObjectL2:
         post_update_low_res_recon = self.current_recon_native_res[low_res_indices]
 
         # Filter post update highRes edges
-        filtered_post_update_high_res_val = self.filter_weight * np.bincount(output_re_index, weights=post_update_high_res_val)
-        filtered_post_update_high_res_val_minus_edges = self.filter_weight * \
+        filtered_post_update_high_res_val = filter_weight * np.bincount(output_re_index, weights=post_update_high_res_val)
+        filtered_post_update_high_res_val_minus_edges = filter_weight * \
             np.bincount(output_re_index, weights=post_update_high_res_val_minus_edges)
-        filtered_post_update_high_res_val_plus_edges = self.filter_weight * \
+        filtered_post_update_high_res_val_plus_edges = filter_weight * \
             np.bincount(output_re_index, weights=post_update_high_res_val_plus_edges)
 
         failure_post_update_per_edge_adding = np.bincount(filtered_corr_edge_ind,
