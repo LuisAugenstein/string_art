@@ -12,19 +12,32 @@ def create_circular_mask(size: int, radius: float = None):
     return mask
 
 
-def preprocess_image(image: np.ndarray, config: Config) -> np.ndarray:
+def resize_image(image: np.ndarray, resolution: int) -> np.ndarray:
     """
     Parameters
     -
-    image: np.shape([N, N], dtype=np.uint8) square greyscale image with values between 0 and 255
+    image: np.shape([N, N], dtype=np.uint8) square grayscale image with values between 0 and 255
 
     Returns
     -
-    preprocessed_image: np.shape([low_resolution, low_resolution], dtype=np.float32) high contrast greyscale image with values between 0 and 1
+    np.shape([resolution, resolution], dtype=np.float32) maximum contrast grayscale image with values between 0 and 1
+    """
+    image = np.array(Image.fromarray(image).resize((resolution, resolution)), dtype=np.float32)
+    image = (image - np.min(image)) / np.max(image)
+    return image
+
+
+def mask_image(image: np.ndarray) -> np.ndarray:
+    """
+    Parameters
+    -
+    image: np.shape([N, N], dtype=np.float32) square grayscale image with values between 0 and 1
+
+    Returns
+    -
+    masked_image: np.shape([N, N], dtype=np.float32) pixels outside the circular frame are set to 1 (white)
     mask: np.shape([low_resolution, low_resolution], dtype=np.bool) binary mask which is 1 for pixels inside the circular frame
     """
-    image = np.array(Image.fromarray(image).resize((config.low_resolution, config.low_resolution)), dtype=np.float32)
-    image = (image - np.min(image)) / np.max(image)
-    mask = create_circular_mask(config.low_resolution)
+    mask = create_circular_mask(image.shape[0])
     image[~mask] = 1.0
     return image, mask

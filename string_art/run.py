@@ -2,7 +2,7 @@ import os
 import numpy as np
 from string_art.config import Config
 import imageio.v3 as imageio
-from string_art.preprocessing.preprocess_image import preprocess_image
+from string_art.preprocessing.preprocess_image import mask_image, resize_image
 from string_art.preprocessing import get_pins, precompute_string_matrices
 from string_art.io import load_picked_edges, load_string_matrices, load_error_image, root_path
 from skimage.transform import resize
@@ -12,7 +12,11 @@ def run(image: np.ndarray, config: Config, name_of_the_run: str):
     """
     image: np.shape([N, N])  square greyscale image with values between 0 and 255
     """
-    image, mask = preprocess_image(image, config)
+    image = resize_image(image, config.low_resolution)
+    masked_image, mask = mask_image(image)
+    if config.invert_input:
+        masked_image = 1 - masked_image
+    imageio.imwrite(f'{root_path}/data/outputs/masked_image.png', (masked_image*255).astype(np.uint8))
 
     # least squares solution
     # mask = mask.reshape(-1)
@@ -27,8 +31,6 @@ def run(image: np.ndarray, config: Config, name_of_the_run: str):
     #     image, img, lowRes, superSamplingWindowWidth, minAngle, numPins, importanceMap, matrixPath)
 
     # visualize string path instead of writing the original image
-    # image = (image*255).astype(np.uint8)
-    # imageio.imwrite(f'{root_path}/data/outputs/output.png', image)
 
     x, picked_edges_sequence = load_picked_edges(image, config.super_sampling_window_width,
                                                  config.min_angle, config.n_pins, A_high_res, A_low_res, fabricable)

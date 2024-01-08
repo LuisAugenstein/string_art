@@ -1,5 +1,4 @@
 import numpy as np
-from string_art.optimization.build_image_vector import build_image_vector
 from string_art.optimization.multi_sample_correspondence_map import multi_sample_correspondence_map
 from string_art.optimization.split_apart_string_matrix import split_apart_string_matrix
 from scipy.sparse import csr_matrix, find
@@ -28,10 +27,9 @@ class GreedyMultiSamplingDataObjectL2:
         self.hookSideBalance = True
         self.matrixPath = 'matrix_path'
 
-        self.b_native_res = build_image_vector(img)
-
+        self.b_native_res = img.T.flatten()
         importance_map = np.ones((low_res, low_res)) if importance_map is None else importance_map
-        self.importance_map = build_image_vector(importance_map)
+        self.importance_map = importance_map.T.flatten()
 
         self.currentReconSquare = np.zeros((self.high_res, self.high_res))
 
@@ -356,7 +354,6 @@ class GreedyMultiSamplingDataObjectL2:
         # Update Incidence
         # Newly construct the incidence vector
         self.incident = np.where(self.fabricable_edges)[0]
-
         # Remove overused edges
         self.incident = self.incident[self.x[self.incident] < MAX_NUM_EDGE_USAGE]
 
