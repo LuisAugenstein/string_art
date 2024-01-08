@@ -31,10 +31,6 @@ class GreedyMultiSamplingDataObjectL2:
             A_high_res)
         self.low_res_edge_pixel_indices, self.low_res_edge_pixel_values, self.low_res_corresp_edge_indices, self.lowResIndexToIndexMap = split_apart_string_matrix(
             A_low_res)
-        self.A_edge_indices_to_pixel_codes = self.load_a_index_matrices(A_high_res)
-
-        self.reachablePixelsMask = np.zeros(self.high_res * self.high_res, dtype=bool)
-        self.reachablePixelsMask[self.highResEdgePixelIndices] = True
 
         super_sampling_factor = self.high_res // self.low_res
         self.filter_weight = 1.0 / (super_sampling_factor * super_sampling_factor)
@@ -43,13 +39,11 @@ class GreedyMultiSamplingDataObjectL2:
         self.lowResReIndexMap = np.zeros(self.low_res**2)
 
         self.removalMode = False
-
         self.x = np.zeros((self.n_edges, 1))
         self.picked_edges_sequence = np.zeros(0, dtype=int)
 
         self.stringList = np.zeros((0, 3), dtype=int)
         self.init_state_vectors()
-        self.init_lately_visited_pins()
 
     @property
     def current_recon_unclamped(self) -> np.ndarray:
@@ -85,21 +79,6 @@ class GreedyMultiSamplingDataObjectL2:
     def low_res(self) -> int:
         return self.A_low_res.shape[0].sqrt()
 
-    def load_a_index_matrices(self, A_high_res: csr_matrix) -> list[tuple[np.ndarray, np.ndarray]]:
-        a_edge_indices_to_pixel_codes = []
-        for k in range(A_high_res.shape[1]):
-            indices, _, val = find(A_high_res[:, k])
-            a_edge_indices_to_pixel_codes.append((np.uint32(indices), val))
-        return a_edge_indices_to_pixel_codes
-
-    def compute_core_zone_pixels(self, reachablePixelsMaskNativeRes, min_angle, low_res):
-        fac = np.clip(np.sin(0.5 * (np.pi - min_angle)), 0.0, 1.0)
-        if fac < 1:
-            mask = create_circular_mask(low_res, 0.5 * fac * low_res)
-            pixel_mask = np.ones((low_res, low_res), dtype=bool)
-            pixel_mask[~mask] = False
-            reachablePixelsMaskNativeRes &= pixel_mask.flatten()
-
     def init_state_vectors(self):
         self.diff_to_blank_squared_errors = (self.importance_map * self.b_native_res)**2
         self.diff_to_blank_squared_error_sum = np.sum(self.diff_to_blank_squared_errors)
@@ -118,9 +97,6 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.f_adding = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_adding
         self.f_removing = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_removing
-
-    def init_lately_visited_pins(self):
-        self.latelyVisitedPins = np.zeros((1, 0), dtype=int)
 
     def find_best_string(self) -> tuple[np.ndarray, int]:
         if self.removalMode:
