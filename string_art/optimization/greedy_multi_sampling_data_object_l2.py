@@ -10,7 +10,7 @@ MIN_CIRCLE_LENGTH = 1
 
 
 class GreedyMultiSamplingDataObjectL2:
-    def __init__(self, img: np.ndarray, importance_map: np.ndarray,  A_high_res: csr_matrix, A_low_res: csr_matrix, pin_edge_transformer: PinEdgeTransformer, min_angle: float):
+    def __init__(self, img: np.ndarray, importance_map: np.ndarray,  A_high_res: csr_matrix, A_low_res: csr_matrix, pin_edge_transformer: PinEdgeTransformer):
         """
         img: np.shape([low_res, low_res])
         importance_map: np.shape([low_res, low_res])
@@ -35,12 +35,6 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.reachablePixelsMask = np.zeros(self.high_res * self.high_res, dtype=bool)
         self.reachablePixelsMask[self.highResEdgePixelIndices] = True
-
-        self.reachablePixelsMaskNativeRes = np.zeros(self.low_res**2, dtype=bool)
-        self.reachablePixelsMaskNativeRes[self.low_res_edge_pixel_indices] = True
-
-        if min_angle > 0:
-            self.compute_core_zone_pixels(self.reachablePixelsMaskNativeRes, min_angle, self.low_res)
 
         super_sampling_factor = self.high_res // self.low_res
         self.filter_weight = 1.0 / (super_sampling_factor * super_sampling_factor)

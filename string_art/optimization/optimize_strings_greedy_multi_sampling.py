@@ -4,8 +4,8 @@ from scipy.sparse import csr_matrix
 from string_art.transformations import PinEdgeTransformer
 
 
-def optimize_strings_greedy_multi_sampling(img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, pin_edge_transformer: PinEdgeTransformer, min_angle: float):
-    obj = GreedyMultiSamplingDataObjectL2(img, importance_map, A_high_res, A_low_res, pin_edge_transformer, min_angle)
+def optimize_strings_greedy_multi_sampling(img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, pin_edge_transformer: PinEdgeTransformer):
+    obj = GreedyMultiSamplingDataObjectL2(img, importance_map, A_high_res, A_low_res, pin_edge_transformer)
 
     iterative_step_size = 1
     iteration = 0
