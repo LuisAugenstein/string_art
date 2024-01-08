@@ -6,9 +6,7 @@ from string_art.transformations import PinEdgeTransformer, indices_1D_high_res_t
 from string_art.preprocessing import create_circular_mask
 import matplotlib.pyplot as plt
 
-MAX_NUM_EDGE_USAGE = 1
 MIN_CIRCLE_LENGTH = 1
-MAX_NUM_PIN_USAGE = 100000
 
 
 class GreedyMultiSamplingDataObjectL2:
@@ -24,7 +22,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.n_edges = A_high_res.shape[1]
         self.low_res = low_res
         self.high_res = low_res * super_sampling_factor
-        self.hookSideBalance = True
         self.matrixPath = 'matrix_path'
 
         self.b_native_res = img.T.flatten()
@@ -69,8 +66,8 @@ class GreedyMultiSamplingDataObjectL2:
         self.pin_count = np.zeros(n_pins)
         self.picked_edges_sequence = np.zeros(0, dtype=int)
 
-        self.incident = np.where(self.fabricable_edges)[0]
-        """edge indices that are fabricable"""
+        self.incident = np.arange(self.n_edges)
+        """edge indices that are available for next picking"""
 
         self.stringList = np.zeros((0, 3), dtype=int)
 
@@ -353,37 +350,16 @@ class GreedyMultiSamplingDataObjectL2:
 
         # Update Incidence
         # Newly construct the incidence vector
-        self.incident = np.where(self.fabricable_edges)[0]
-        # Remove overused edges
-        self.incident = self.incident[self.x[self.incident] < MAX_NUM_EDGE_USAGE]
-
-        # Remove edges that belong to overused hooks
-        # TODO: this seems strange. compare with original matlab code
-        overused_hooks_edge_indices = np.concatenate(
-            self.pin_edge_transformer.pins_to_edges(self.pin_count > MAX_NUM_PIN_USAGE)[:, 0])
-        self.incident = np.setdiff1d(self.incident, overused_hooks_edge_indices)
+        # remove overused edges
+        self.incident = np.ones(self.n_edges, dtype=bool)
 
         pins_to_outgoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='outgoing')
         pins_to_ingoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='ingoing')
-
-        # Remove edges that would lead to an imbalance of the sides of the hooks
-        if self.hookSideBalance:
-            remove_left_side_edges_mask = self.numLeftEdgesPerHook - self.numRightEdgesPerHook > 0
-            remove_right_side_edges_mask = self.numRightEdgesPerHook - self.numLeftEdgesPerHook > 0
-
-            self.incident[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
-            self.incident[pins_to_ingoing_edges[remove_right_side_edges_mask, :]] = False
 
         self.incident = np.where(self.incident)[0]
 
         # Update removable edge indices
         removable_edge_indices_bool = self.x > 0
-
-        if self.hookSideBalance:
-            remove_left_side_edges_mask = self.numLeftEdgesPerHook < self.numRightEdgesPerHook
-
-            removable_edge_indices_bool[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
-            removable_edge_indices_bool[pins_to_ingoing_edges[~remove_left_side_edges_mask, :]] = False
 
         self.removable_edge_indices = np.where(removable_edge_indices_bool)[0]
 
