@@ -2,7 +2,7 @@ import numpy as np
 from typing import Literal
 
 
-def indices_high_res_to_low_res(high_res_indices: np.ndarray, high_res: int, low_res: int) -> np.ndarray:
+def indices_1D_high_res_to_low_res(high_res_indices: np.ndarray, high_res: int, low_res: int) -> np.ndarray:
     row_high_res, col_high_res = indices_1D_to_2D(high_res_indices, high_res, 'row-col').T
     super_sampling_factor = high_res // low_res
     row, col = row_high_res // super_sampling_factor, col_high_res // super_sampling_factor
@@ -10,7 +10,7 @@ def indices_high_res_to_low_res(high_res_indices: np.ndarray, high_res: int, low
     return low_res_index
 
 
-def indices_low_res_to_high_res(low_res_indices: np.ndarray, low_res: int, high_res: int) -> np.ndarray:
+def indices_1D_low_res_to_high_res(low_res_indices: np.ndarray, low_res: int, high_res: int) -> np.ndarray:
     points_low_res = indices_1D_to_2D(low_res_indices, low_res, 'row-col')
     super_sampling_factor = high_res // low_res
     offsets = np.vstack([np.array([i, j]) for i in range(super_sampling_factor) for j in range(super_sampling_factor)])

@@ -1,10 +1,9 @@
 import numpy as np
-from string_art.optimization.edge_codes import edge_codes
 from string_art.optimization.build_image_vector import build_image_vector
 from string_art.optimization.multi_sample_correspondence_map import multi_sample_correspondence_map
 from string_art.optimization.split_apart_string_matrix import split_apart_string_matrix
 from scipy.sparse import csr_matrix, find
-from string_art.transformations import indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
+from string_art.transformations import PinEdgeTransformer, indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 from string_art.preprocessing import create_circular_mask
 import matplotlib.pyplot as plt
 
@@ -14,16 +13,18 @@ MAX_NUM_PIN_USAGE = 100000
 
 
 class GreedyMultiSamplingDataObjectL2:
-    def __init__(self, img: np.ndarray, super_sampling_factor: int,  min_angle: float, n_pins: int, importance_map: np.ndarray | None,  fabricable_edges: np.ndarray, A_high_res, A_low_res):
+    def __init__(self, img: np.ndarray, super_sampling_factor: int,  min_angle: float, n_pins: int, importance_map: np.ndarray | None,  fabricable_edges: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix):
         """
         img: np.shape([low_res, low_res])
         importance_map: np.shape([low_res, low_res])
-        fabricable_edges: np.shape([n_edges], dtype=bool)
+        fabricable_edges: np.shape([n_edges], dtype=bool) with n_edges=4*comb(n_pins, 2) stating which of the possible edges are fabricable
         """
         low_res = img.shape[0]
         self.n_pins = n_pins
-        self.edges_to_pins, self.pins_to_edges = edge_codes(n_pins, fabricable_edges)
-        self.n_edges = self.edges_to_pins.shape[0]
+        self.pin_edge_transformer = PinEdgeTransformer(n_pins, fabricable_edges)
+        pins_to_edges = self.pin_edge_transformer.pins_to_edges(np.arange(n_pins))
+        self.hook_to_left_edges, self.hook_to_right_edges = self.init_left_and_right_edges(pins_to_edges)
+        self.n_edges = A_high_res.shape[1]
         self.low_res = low_res
         self.high_res = low_res * super_sampling_factor
         self.hookSideBalance = True
@@ -39,7 +40,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.numLeftEdgesPerHook = np.zeros(self.n_pins)
         self.numRightEdgesPerHook = np.zeros(self.n_pins)
 
-        self.hook_to_left_edges, self.hook_to_right_edges = self.init_left_and_right_edges(self.pins_to_edges)
         self.fabricable_edges = fabricable_edges
         # Note in the original algorithm the following two lines should be executed with unfiltered matrices, i.e., including the non-fabricable edges
         self.highResEdgePixelIndices, self.highResEdgePixelValues, self.highResCorrespEdgeIndices, self.highResIndexToIndexMap = split_apart_string_matrix(
@@ -345,19 +345,16 @@ class GreedyMultiSamplingDataObjectL2:
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
 
-    def update_incidence_vector(self, edge_id):
-        dif = 1 if not self.removalMode else -1
+    def update_incidence_vector(self, edge_id: int):
+        dif = -1 if self.removalMode else 1
 
         edge_type = edge_id % 4
-        if edge_type == 0:
-            edge_type = 4
+        pins = self.edges_to_pins[edge_id, :]
 
-        hooks = self.edges_to_pins[edge_id, :]
+        self.pin_count[pins[0]] += dif
+        self.pin_count[pins[1]] += dif
 
-        self.pin_count[hooks[0]] += dif
-        self.pin_count[hooks[1]] += dif
-
-        hook_a, hook_b = hooks[0], hooks[1]
+        hook_a, hook_b = pins[0], pins[1]
 
         if edge_type == 1:
             # RIGHT for hookA, LEFT for hookB
@@ -378,25 +375,24 @@ class GreedyMultiSamplingDataObjectL2:
 
         if self.consecutive:
             if self.current_pin == 0:
-                edges_to_h1 = self.pins_to_edges[hooks[0]]
-                edges_to_h2 = self.pins_to_edges[hooks[1]]
+                edges_to_h1, edges_to_h2 = self.pin_edge_transformer.pins_to_edges(pins)
                 self.incident = np.concatenate([edges_to_h1, edges_to_h2])
 
                 _, i = self.findBestString()
 
                 if i <= len(edges_to_h1):
-                    self.current_pin = hooks[1]
+                    self.current_pin = pins[1]
                 else:
-                    self.current_pin = hooks[0]
+                    self.current_pin = pins[0]
 
                 self.latelyVisitedPins = np.append(self.latelyVisitedPins, self.current_pin)
 
-            self.stringList[-1, 1] = edge_id
+            self.stringList[-1, 1] = self.current_pin
 
-            if hooks[0] == self.current_pin:
-                self.current_pin = hooks[1]
+            if pins[0] == self.current_pin:
+                self.current_pin = pins[1]
             else:
-                self.current_pin = hooks[0]
+                self.current_pin = pins[0]
 
             self.stringList[-1, 2] = self.current_pin
             self.pin_count[self.current_pin] += 1
@@ -406,7 +402,7 @@ class GreedyMultiSamplingDataObjectL2:
             if len(self.latelyVisitedPins) == MIN_CIRCLE_LENGTH:
                 self.latelyVisitedPins = self.latelyVisitedPins[1:]
 
-            self.incident = self.pins_to_edges[self.current_pin]
+            self.incident = self.pin_edge_transformer.pins_to_edges(self.current_pin)
 
             max_used_hooks = np.where(self.pin_count == MAX_NUM_PIN_USAGE)[0]
             illegal_pins = np.union1d(self.latelyVisitedPins, max_used_hooks)
@@ -423,7 +419,9 @@ class GreedyMultiSamplingDataObjectL2:
             self.incident = self.incident[self.x[self.incident] < MAX_NUM_EDGE_USAGE]
 
             # Remove edges that belong to overused hooks
-            overused_hooks_edge_indices = np.concatenate(self.pins_to_edges[self.pin_count > MAX_NUM_PIN_USAGE, 0])
+            # TODO: this seems strange. compare with original matlab code
+            overused_hooks_edge_indices = np.concatenate(
+                self.pin_edge_transformer.pins_to_edges(self.pin_count > MAX_NUM_PIN_USAGE)[:, 0])
             self.incident = np.setdiff1d(self.incident, overused_hooks_edge_indices)
 
             # Remove edges that would lead to an imbalance of the sides of the hooks
