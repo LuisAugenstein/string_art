@@ -10,53 +10,45 @@ MIN_CIRCLE_LENGTH = 1
 
 
 class GreedyMultiSamplingDataObjectL2:
-    def __init__(self, img: np.ndarray, super_sampling_factor: int,  min_angle: float, n_pins: int, importance_map: np.ndarray | None,  fabricable_edges: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix):
+    def __init__(self, img: np.ndarray, importance_map: np.ndarray,  A_high_res: csr_matrix, A_low_res: csr_matrix, pin_edge_transformer: PinEdgeTransformer, min_angle: float):
         """
         img: np.shape([low_res, low_res])
         importance_map: np.shape([low_res, low_res])
-        fabricable_edges: np.shape([n_edges], dtype=bool) with n_edges=4*comb(n_pins, 2) stating which of the possible edges are fabricable
+        A_high_res: np.shape([high_res**2, n_edges])
+        A_low_res: np.shape([low_res**2, n_edges])
         """
-        low_res = img.shape[0]
-        self.n_pins = n_pins
-        self.pin_edge_transformer = PinEdgeTransformer(n_pins, fabricable_edges)
-        self.n_edges = A_high_res.shape[1]
-        self.low_res = low_res
-        self.high_res = low_res * super_sampling_factor
-        self.matrixPath = 'matrix_path'
-
         self.b_native_res = img.T.flatten()
-        importance_map = np.ones((low_res, low_res)) if importance_map is None else importance_map
         self.importance_map = importance_map.T.flatten()
+        self.A_high_res = A_high_res
+        self.A_low_res = A_low_res
+        self.pin_edge_transformer = pin_edge_transformer
+
+        self.matrixPath = 'matrix_path'
 
         self.currentReconSquare = np.zeros((self.high_res, self.high_res))
 
-        self.fabricable_edges = fabricable_edges
-        # Note in the original algorithm the following two lines should be executed with unfiltered matrices, i.e., including the non-fabricable edges
         self.highResEdgePixelIndices, self.highResEdgePixelValues, self.highResCorrespEdgeIndices, self.highResIndexToIndexMap = split_apart_string_matrix(
             A_high_res)
         self.low_res_edge_pixel_indices, self.low_res_edge_pixel_values, self.low_res_corresp_edge_indices, self.lowResIndexToIndexMap = split_apart_string_matrix(
             A_low_res)
         self.A_edge_indices_to_pixel_codes = self.load_a_index_matrices(A_high_res)
-        self.A_high_res = A_high_res
-        self.A_low_res = A_low_res
 
         self.reachablePixelsMask = np.zeros(self.high_res * self.high_res, dtype=bool)
         self.reachablePixelsMask[self.highResEdgePixelIndices] = True
 
-        self.reachablePixelsMaskNativeRes = np.zeros(low_res**2, dtype=bool)
+        self.reachablePixelsMaskNativeRes = np.zeros(self.low_res**2, dtype=bool)
         self.reachablePixelsMaskNativeRes[self.low_res_edge_pixel_indices] = True
 
         if min_angle > 0:
-            self.compute_core_zone_pixels(min_angle, low_res)
+            self.compute_core_zone_pixels(self.reachablePixelsMaskNativeRes, min_angle, self.low_res)
 
+        super_sampling_factor = self.high_res // self.low_res
         self.filter_weight = 1.0 / (super_sampling_factor * super_sampling_factor)
 
         self.highResReIndexMap = np.zeros(self.high_res**2)
         self.lowResReIndexMap = np.zeros(self.low_res**2)
 
         self.removalMode = False
-
-        self.allIndices = np.arange(self.high_res) + 1
 
         self.x = np.zeros((self.n_edges, 1))
         self.picked_edges_sequence = np.zeros(0, dtype=int)
@@ -87,6 +79,18 @@ class GreedyMultiSamplingDataObjectL2:
     def removable_edge_indices(self) -> np.ndarray:
         return find(self.x)[0]
 
+    @property
+    def n_edges(self) -> int:
+        return self.pin_edge_transformer.n_edges
+
+    @property
+    def high_res(self) -> int:
+        return self.A_high_res.shape[0].sqrt()
+
+    @property
+    def low_res(self) -> int:
+        return self.A_low_res.shape[0].sqrt()
+
     def load_a_index_matrices(self, A_high_res: csr_matrix) -> list[tuple[np.ndarray, np.ndarray]]:
         a_edge_indices_to_pixel_codes = []
         for k in range(A_high_res.shape[1]):
@@ -94,23 +98,23 @@ class GreedyMultiSamplingDataObjectL2:
             a_edge_indices_to_pixel_codes.append((np.uint32(indices), val))
         return a_edge_indices_to_pixel_codes
 
-    def compute_core_zone_pixels(self, min_angle, low_res):
+    def compute_core_zone_pixels(self, reachablePixelsMaskNativeRes, min_angle, low_res):
         fac = np.clip(np.sin(0.5 * (np.pi - min_angle)), 0.0, 1.0)
         if fac < 1:
             mask = create_circular_mask(low_res, 0.5 * fac * low_res)
             pixel_mask = np.ones((low_res, low_res), dtype=bool)
             pixel_mask[~mask] = False
-            self.reachablePixelsMaskNativeRes &= pixel_mask.flatten()
+            reachablePixelsMaskNativeRes &= pixel_mask.flatten()
 
     def init_state_vectors(self):
-        self.diff_to_blank_squared_errors = self.importance_map.multiply(self.b_native_res).power(2)
+        self.diff_to_blank_squared_errors = (self.importance_map * self.b_native_res)**2
         self.diff_to_blank_squared_error_sum = np.sum(self.diff_to_blank_squared_errors)
 
         self.rmseValue = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
 
-        W = self.importance_map[self.low_res_edge_pixel_indices].A.squeeze()
-        b = self.b_native_res[self.low_res_edge_pixel_indices].A.squeeze()
-        c = self.diff_to_blank_squared_errors[self.low_res_edge_pixel_indices].A.squeeze()
+        W = self.importance_map[self.low_res_edge_pixel_indices]
+        b = self.b_native_res[self.low_res_edge_pixel_indices]
+        c = self.diff_to_blank_squared_errors[self.low_res_edge_pixel_indices]
         A = self.low_res_edge_pixel_values
         i = self.low_res_corresp_edge_indices
 

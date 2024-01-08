@@ -14,8 +14,8 @@ class PinEdgeTransformer:
                           if None then all edges are valid.
         """
         self.n_pins = n_pins
-        n_edges = N_CONNECTION_TYPES*comb(n_pins, 2)
-        self.valid_edges_mask = np.ones(n_edges, dtype=bool) if valid_edges_mask is None else valid_edges_mask
+        self.n_edges = N_CONNECTION_TYPES*comb(n_pins, 2)
+        self.valid_edges_mask = np.ones(self.n_edges, dtype=bool) if valid_edges_mask is None else valid_edges_mask
         self.__all_edges_to_pins = self.__init_all_edges_to_pins(n_pins, self.valid_edges_mask)
         self.__all_pins_to_edges = self.__init_all_pins_to_edges(n_pins,  self.__all_edges_to_pins)
 

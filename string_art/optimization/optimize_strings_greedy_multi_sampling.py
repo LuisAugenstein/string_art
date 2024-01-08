@@ -1,11 +1,11 @@
 import numpy as np
 from string_art.optimization.greedy_multi_sampling_data_object_l2 import GreedyMultiSamplingDataObjectL2
 from scipy.sparse import csr_matrix
+from string_art.transformations import PinEdgeTransformer
 
 
-def optimize_strings_greedy_multi_sampling(img: np.ndarray, super_sampling_factor: int, min_angle: float, n_pins: int, A_high_res: csr_matrix, A_low_res: csr_matrix, fabricable_edges: np.ndarray, importance_map=None):
-    obj = GreedyMultiSamplingDataObjectL2(img, super_sampling_factor, min_angle, n_pins,
-                                          importance_map, fabricable_edges, A_high_res, A_low_res)
+def optimize_strings_greedy_multi_sampling(img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, pin_edge_transformer: PinEdgeTransformer, min_angle: float):
+    obj = GreedyMultiSamplingDataObjectL2(img, importance_map, A_high_res, A_low_res, pin_edge_transformer, min_angle)
 
     iterative_step_size = 1
     iteration = 0
@@ -14,9 +14,7 @@ def optimize_strings_greedy_multi_sampling(img: np.ndarray, super_sampling_facto
     num_bad_runs = 0
     max_num_strings = 100000
 
-    while iteration < max_num_strings:
-        iteration += 1
-
+    for iteration in range(1, max_num_strings+1):
         print(f'Iteration Nr. {iteration}')
 
         m, i = obj.find_best_string()
@@ -24,7 +22,7 @@ def optimize_strings_greedy_multi_sampling(img: np.ndarray, super_sampling_facto
         if i is None:
             break
 
-        if i.shape[0] > 1:
+        if isinstance(i, np.ndarray) and i.shape[0] > 1:
             i = np.random.choice(i, 1)
 
         obj.choose_string_and_update(i)
