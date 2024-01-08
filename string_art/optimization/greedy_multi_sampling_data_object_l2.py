@@ -22,8 +22,6 @@ class GreedyMultiSamplingDataObjectL2:
         low_res = img.shape[0]
         self.n_pins = n_pins
         self.pin_edge_transformer = PinEdgeTransformer(n_pins, fabricable_edges)
-        pins_to_edges = self.pin_edge_transformer.pins_to_edges(np.arange(n_pins))
-        self.hook_to_left_edges, self.hook_to_right_edges = self.init_left_and_right_edges(pins_to_edges)
         self.n_edges = A_high_res.shape[1]
         self.low_res = low_res
         self.high_res = low_res * super_sampling_factor
@@ -101,27 +99,6 @@ class GreedyMultiSamplingDataObjectL2:
     @property
     def residual(self) -> np.ndarray:
         return self.importance_map.multiply(self.b_native_res - self.current_recon_native_res)
-
-    def init_left_and_right_edges(self, pins_to_edges: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
-        """
-        groups pin_to_edges array in 0-2 (right) and 1-3 (left) groups
-
-        Parameters
-        -
-        hook_to_edge: [np.shape([n_connections_to_pin_i, 2])] len=n_pins
-
-        """
-        n_pins = len(pins_to_edges)
-        hook_to_left_edges = np.zeros((n_pins, pins_to_edges[0].shape[0] // 2), dtype=int)
-        hook_to_right_edges = hook_to_left_edges.copy()
-
-        for i, pin_to_edge in enumerate(pins_to_edges):
-            left_mask = (pin_to_edge[:, 1] == 1) | (pin_to_edge[:, 1] == 3)
-            right_mask = ~left_mask
-
-            hook_to_left_edges[i, :] = pin_to_edge[left_mask, 0]
-            hook_to_right_edges[i, :] = pin_to_edge[right_mask, 0]
-        return hook_to_left_edges, hook_to_right_edges
 
     def load_a_index_matrices(self, A_high_res: csr_matrix) -> list[tuple[np.ndarray, np.ndarray]]:
         a_edge_indices_to_pixel_codes = []
@@ -424,13 +401,16 @@ class GreedyMultiSamplingDataObjectL2:
                 self.pin_edge_transformer.pins_to_edges(self.pin_count > MAX_NUM_PIN_USAGE)[:, 0])
             self.incident = np.setdiff1d(self.incident, overused_hooks_edge_indices)
 
+            pins_to_outgoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='outgoing')
+            pins_to_ingoing_edges, _ = self.pin_edge_transformer.pins_to_edges(filter='ingoing')
+
             # Remove edges that would lead to an imbalance of the sides of the hooks
             if self.hookSideBalance:
                 remove_left_side_edges_mask = self.numLeftEdgesPerHook - self.numRightEdgesPerHook > 0
                 remove_right_side_edges_mask = self.numRightEdgesPerHook - self.numLeftEdgesPerHook > 0
 
-                self.incident[self.hook_to_left_edges[remove_left_side_edges_mask, :]] = False
-                self.incident[self.hook_to_right_edges[remove_right_side_edges_mask, :]] = False
+                self.incident[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
+                self.incident[pins_to_ingoing_edges[remove_right_side_edges_mask, :]] = False
 
             self.incident = np.where(self.incident)[0]
 
@@ -441,8 +421,8 @@ class GreedyMultiSamplingDataObjectL2:
                 remove_left_side_edges_mask = self.numLeftEdgesPerHook - self.numRightEdgesPerHook < 0
                 remove_right_side_edges_mask = self.numRightEdgesPerHook - self.numLeftEdgesPerHook < 0
 
-                self.removable_edge_indices[self.hook_to_left_edges[remove_left_side_edges_mask, :]] = False
-                self.removable_edge_indices[self.hook_to_right_edges[remove_right_side_edges_mask, :]] = False
+                self.removable_edge_indices[pins_to_outgoing_edges[remove_left_side_edges_mask, :]] = False
+                self.removable_edge_indices[pins_to_ingoing_edges[remove_right_side_edges_mask, :]] = False
 
             self.removable_edge_indices = np.where(self.removable_edge_indices)[0]
 

@@ -2,7 +2,8 @@ import numpy as np
 from math import comb
 from itertools import combinations
 from scipy.sparse import find
-from string_art.entities import ConnectionType
+from string_art.entities import ConnectionType, N_CONNECTION_TYPES, connection_type_masks
+from typing import Literal
 
 
 class PinEdgeTransformer:
@@ -13,16 +14,18 @@ class PinEdgeTransformer:
                           if None then all edges are valid.
         """
         self.n_pins = n_pins
-        n_edges = len(ConnectionType)*comb(n_pins, 2)
+        n_edges = N_CONNECTION_TYPES*comb(n_pins, 2)
         self.valid_edges_mask = np.ones(n_edges, dtype=bool) if valid_edges_mask is None else valid_edges_mask
         self.__all_edges_to_pins = self.__init_all_edges_to_pins(n_pins, self.valid_edges_mask)
         self.__all_pins_to_edges = self.__init_all_pins_to_edges(n_pins,  self.__all_edges_to_pins)
 
-    def pins_to_edges(self, pin_indices: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def pins_to_edges(self, pin_indices: np.ndarray | None = None, filter: Literal['ingoing', 'outgoing'] | None = None) -> tuple[np.ndarray, np.ndarray]:
         """
         Parameters
         -
-        pin_indices: np.shape([N], dtype=int) indices of N pins. N is at most n_pins.
+        pin_indices: np.shape([N], dtype=int) indices of N pins. if pin_indices is None all pins are used.
+        filter: 'ingoing'  only returns ingoing edges, i.e.,  edges of the form (_, pin_index)
+                'outgoing' only returns outgoing edges, i.e., edges of the form (pin_index, _)
 
         Returns
         -
@@ -30,8 +33,12 @@ class PinEdgeTransformer:
         connection_types: np.shape([N, n_incident_edges], dtype=ConnectionType) the connection type of each edge
                       n_incident_edges is at most 4*(n_pins-1) if all edges are valid
         """
+        if pin_indices is None:
+            pin_indices = np.arange(self.n_pins)
+        n_input_pins = pin_indices.shape[0]
         edge_indices, connection_types = self.__all_pins_to_edges[pin_indices, :, 0], self.__all_pins_to_edges[pin_indices, :, 1]
-        return edge_indices, connection_types
+        mask = connection_type_masks[filter](connection_types) if filter else np.ones_like(connection_types, dtype=bool)
+        return edge_indices[mask].reshape(n_input_pins, -1), connection_types[mask].reshape(n_input_pins, -1)
 
     def edges_to_pins(self, edge_indices: np.ndarray) -> np.ndarray:
         """
@@ -49,7 +56,7 @@ class PinEdgeTransformer:
 
     def __init_all_edges_to_pins(self, n_pins: int, valid_edges_mask: np.ndarray) -> np.ndarray:
         all_edges_to_pins = np.array(list(combinations(range(n_pins), 2)))
-        all_edges_to_pins = np.repeat(all_edges_to_pins, len(ConnectionType), axis=0)[valid_edges_mask]
+        all_edges_to_pins = np.repeat(all_edges_to_pins, N_CONNECTION_TYPES, axis=0)[valid_edges_mask]
         return all_edges_to_pins
 
     def __init_all_pins_to_edges(self, n_pins: int, all_edges_to_pins: np.ndarray) -> np.ndarray:
@@ -57,14 +64,14 @@ class PinEdgeTransformer:
         for pin_index in range(n_pins):
             _, i, _ = find(all_edges_to_pins[:, 0] == pin_index)
             _, i2, _ = find(all_edges_to_pins[:, 1] == pin_index)
-            # zeros where pin_index is the first pin, ones where it is the second pin
-            is_ingoing_edge = np.concatenate([np.zeros_like(i), np.ones_like(i2)])
-            i = np.concatenate([i, i2])  # indices of edges that contain pin_index
+            pin_to_edges = np.concatenate([i, i2])  # indices of edges that contain pin_index
 
-            # if the desired hook occurs on the right side of the edge, switch connectiontype 0 and 1
-            connection_type = i % 4
-            connection_type[is_ingoing_edge & (connection_type == ConnectionType.STRAIGHT_IN)] = ConnectionType.STRAIGHT_OUT
-            connection_type[is_ingoing_edge & (connection_type == ConnectionType.STRAIGHT_OUT)] = ConnectionType.STRAIGHT_IN
-
-            all_pins_to_edges.append(np.vstack([i, connection_type]).T)
-        return np.vstack(all_pins_to_edges).T
+            # if pin_index occurs on the right side of the edge, i.e., in an ingoing edge,
+            # switch connectiontype STRAIGHT_IN: 0 and STRAIGHT_OUT: 1
+            connection_types = pin_to_edges % 4
+            is_ingoing_edge = np.concatenate([np.zeros_like(i, dtype=bool), np.ones_like(i2, dtype=bool)])
+            ingoing_straight_mask = is_ingoing_edge & ((connection_types == ConnectionType.STRAIGHT_IN) |
+                                                       (connection_types == ConnectionType.STRAIGHT_OUT))
+            connection_types[ingoing_straight_mask] = 1 - connection_types[ingoing_straight_mask]
+            all_pins_to_edges.append(np.vstack([pin_to_edges, connection_types]).T)
+        return np.stack(all_pins_to_edges, axis=0)
