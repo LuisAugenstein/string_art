@@ -60,7 +60,6 @@ class GreedyMultiSamplingDataObjectL2:
         self.allIndices = np.arange(self.high_res) + 1
 
         self.x = np.zeros((self.n_edges, 1))
-        self.pin_count = np.zeros(n_pins)
         self.picked_edges_sequence = np.zeros(0, dtype=int)
 
         self.stringList = np.zeros((0, 3), dtype=int)
@@ -185,7 +184,6 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.update_edge_errors(native_res_indices, high_res_indices, pre_update_low_res_recon,
                                 pre_update_high_res_recon_unclamped, pre_update_errors, post_update_errors)
-        self.update_incidence_vector(i)
 
     def update_edge_errors(self, low_res_indices, high_res_indices, pre_update_low_res_recon,
                            pre_update_high_res_recon_unclamped, pre_update_errors, post_update_errors):
@@ -310,17 +308,6 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
-
-    def update_incidence_vector(self, edge_index: int):
-        dif = -1 if self.removalMode else 1
-
-        for p in self.pin_edge_transformer.edges_to_pins(edge_index):
-            self.pin_count[p] += dif
-
-        p1, p2 = self.pin_edge_transformer.edges_to_pins(edge_index)
-
-        self.pin_count[p1] += dif
-        self.pin_count[p2] += dif
 
     def compute_illegal_edge_indices(self, hook, illegal_pins: np.ndarray):
         if hook == illegal_pins:
