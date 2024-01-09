@@ -7,6 +7,8 @@ from string_art.preprocessing import get_pins, precompute_string_matrices
 from string_art.io import load_picked_edges, load_string_matrices, load_error_image, root_path
 from skimage.transform import resize
 from string_art.transformations import PinEdgeTransformer
+from scipy.io import loadmat
+import matplotlib.pyplot as plt
 
 
 def run(image: np.ndarray, config: Config, name_of_the_run: str):
@@ -14,10 +16,11 @@ def run(image: np.ndarray, config: Config, name_of_the_run: str):
     image: np.shape([N, N])  square greyscale image with values between 0 and 255
     """
     image = resize_image(image, config.low_resolution)
-    masked_image, mask = mask_image(image)
+    image = loadmat(f'{root_path}/data/inputs/preprocessed_cat_img.mat')['img']
+    masked_image, mask = mask_image(image.copy())
     if config.invert_input:
         masked_image = 1 - masked_image
-        image = 1 - image
+        # image = 1 - image
     imageio.imwrite(f'{root_path}/data/outputs/masked_image.png', (masked_image*255).astype(np.uint8))
 
     # Precompute string matrices

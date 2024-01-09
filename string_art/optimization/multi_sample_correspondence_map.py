@@ -1,9 +1,13 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-from skimage.transform import resize
 
 
-def multi_sample_correspondence_map(low_res: int, high_res: int):
+def multi_sample_correspondence_map(low_res: int, high_res: int) -> csr_matrix:
+    """
+    Returns
+    -
+    correspondence_map: np.shape([low_res**2, high_res**2])
+    """
     super_sampling_factor = high_res // low_res
     n_pixels = high_res**2
     n_correspondence_values = low_res**2

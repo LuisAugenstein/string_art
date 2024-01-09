@@ -2,23 +2,18 @@ from scipy.sparse import csr_matrix, find
 import numpy as np
 
 
-def split_apart_string_matrix(A: csr_matrix):
-    A_edge_indices_to_pixel_codes = []
-    _, n_edges = A.shape
-    for k in range(n_edges):
-        indices, _, val = find(A[:, k])
-        A_edge_indices_to_pixel_codes.append((np.uint32(indices), val))
+def get_index_to_index_map(A: csr_matrix) -> csr_matrix:
+    """
+    Parameters
+    -
+    A: np.shape([n_pixels, n_edges])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
 
-    EPI, EPV = np.hstack(A_edge_indices_to_pixel_codes)
-    EPI = EPI.astype(np.uint32)
-    CEI = np.uint32(np.arange(n_edges).repeat([len(a) for a, _ in A_edge_indices_to_pixel_codes]))
-    m = EPI.shape[0]
-    n = int(np.max(EPI)+1)
-
-    row_indices = np.arange(m)
-    col_indices = np.array(EPI)
-    data = np.ones_like(row_indices)
-
-    ITI = csr_matrix((data, (row_indices, col_indices)), shape=(m, n))
-    # edge_pixel_indices, edge_pixel_values, correspondence_edge_indices, ???
-    return EPI, EPV, CEI, ITI
+    Returns
+    -
+    index_to_index_map: np.shape([n_values_in_A, n_pixels]) binary matrix which contains a single 1 in each row (i,edge_pixel_indices[i]) and otherwise 0. 
+    """
+    _, edge_pixel_indices, _ = find(A.T)
+    n_values_in_A = edge_pixel_indices.shape[0]
+    data = np.ones(n_values_in_A)
+    index_to_index_map = csr_matrix((data, (np.arange(n_values_in_A), edge_pixel_indices)), shape=(n_values_in_A, A.shape[0]))
+    return index_to_index_map

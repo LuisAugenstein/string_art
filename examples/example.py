@@ -8,6 +8,6 @@ config.n_pins = 16
 config.pin_side_length = 2
 config.string_thickness = 0.15
 config.frame_diameter = config.string_thickness * 1024
-config.min_angle = pi / 4
+config.min_angle = 0  # pi / 4
 config.super_sampling_window_width = 4
 string_art.run(img, config, 'cat-test')

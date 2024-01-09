@@ -17,8 +17,10 @@ class GreedyMultiSamplingDataObjectL2:
         A_high_res: np.shape([high_res**2, n_edges])
         A_low_res: np.shape([low_res**2, n_edges])
         """
-        self.b_native_res = img.T.flatten()
-        self.importance_map = importance_map.T.flatten()
+        self.b_native_res = img.flatten()
+        self.importance_map = np.ones_like(importance_map.flatten())
+        self.fabricable = importance_map.flatten()
+        # self.importance_map = importance_map.T.flatten()
         self.A_high_res = A_high_res
         self.A_low_res = A_low_res
         self.pin_edge_transformer = pin_edge_transformer
@@ -54,7 +56,11 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.f_adding = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_adding
         self.f_removing = self.diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_removing
-
+        f_adding = self.get_f_adding()
+        f_adding2 = np.zeros(self.n_edges)
+        for k in range(self.n_edges):
+            f_adding2[k] = np.sum((self.importance_map * (self.b_native_res - A_low_res[:, k].A.squeeze()))**2)
+        print('d')
         """
         The above is a faster version of 
         for k in range(self.n_edges):
@@ -64,7 +70,7 @@ class GreedyMultiSamplingDataObjectL2:
     @property
     def current_recon_unclamped(self) -> np.ndarray:
         """np.shape([high_res**2]) with binary values which pixel is used and which one not"""
-        return self.A_high_res @ self.x
+        return (self.A_high_res @ self.x).squeeze()
 
     @property
     def current_recon(self) -> np.ndarray:
@@ -101,12 +107,11 @@ class GreedyMultiSamplingDataObjectL2:
         # Find all relevant indices
         # Performance improvement: Cache the find operation
         edge_pixel_indices, _, _ = find(self.A_high_res[:, i])  # row_indices of pixels that are hit by string i
-        native_res_indices = np.unique(indices_1D_high_res_to_low_res(edge_pixel_indices, self.high_res, self.low_res))
-        high_res_indices = indices_1D_low_res_to_high_res(native_res_indices, self.low_res, self.high_res).flatten()
+        low_res_indices = np.unique(indices_1D_high_res_to_low_res(edge_pixel_indices, self.high_res, self.low_res))
+        high_res_indices = indices_1D_low_res_to_high_res(low_res_indices, self.low_res, self.high_res).T.flatten()
 
-        # pre_update_high_res_recon = self.currentRecon[high_res_indices]
         pre_update_high_res_recon_unclamped = self.current_recon_unclamped[high_res_indices]
-        pre_update_low_res_recon = self.current_recon_native_res[native_res_indices]
+        pre_update_low_res_recon = self.current_recon_native_res[low_res_indices]
 
         dif = 1
 
@@ -132,14 +137,14 @@ class GreedyMultiSamplingDataObjectL2:
         print(f'\tF2 when picking edge Nr. {i}: {np.sum(self.residual)**2:16.16f}\n\n')
         # self.show_current()
 
-        pre_update_errors = self.diff_to_blank_squared_errors[native_res_indices]
+        pre_update_errors = self.diff_to_blank_squared_errors[low_res_indices]
         self.diff_to_blank_squared_error_sum -= np.sum(pre_update_errors)
-        self.diff_to_blank_squared_errors[native_res_indices] = self.residual[native_res_indices]**2
-        post_update_errors = self.diff_to_blank_squared_errors[native_res_indices]
+        self.diff_to_blank_squared_errors[low_res_indices] = self.residual[low_res_indices]**2
+        post_update_errors = self.diff_to_blank_squared_errors[low_res_indices]
         self.diff_to_blank_squared_error_sum += np.sum(post_update_errors)
         self.rmse_value = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
 
-        self.update_edge_errors(native_res_indices, high_res_indices, pre_update_low_res_recon,
+        self.update_edge_errors(low_res_indices, high_res_indices, pre_update_low_res_recon,
                                 pre_update_high_res_recon_unclamped, pre_update_errors, post_update_errors)
 
     def update_edge_errors(self, low_res_indices, high_res_indices, pre_update_low_res_recon,
@@ -175,34 +180,28 @@ class GreedyMultiSamplingDataObjectL2:
         self.f_removing -= post_corr - pre_corr
 
         # Update intersecting pixel positions
-        highResCorrespEdgeIndices, highResEdgePixelIndices, highResEdgePixelValues = find(self.A_high_res.T)
-        high_res_sec_edge_pix_ind = highResEdgePixelIndices[high_res_sec_mask]
-        high_res_sec_edge_pix_val = highResEdgePixelValues[high_res_sec_mask]
-        high_res_corr_edge_ind = highResCorrespEdgeIndices[high_res_sec_mask]
+        high_res_corresp_edge_indices, high_res_edge_pixel_indices, high_res_edge_pixel_values = find(self.A_high_res.T)
+        high_res_sec_edge_pix_ind = high_res_edge_pixel_indices[high_res_sec_mask]
+        high_res_sec_edge_pix_val = high_res_edge_pixel_values[high_res_sec_mask]
+        high_res_corr_edge_ind = high_res_corresp_edge_indices[high_res_sec_mask]
         high_res_to_low_res_ind = indices_1D_high_res_to_low_res(high_res_sec_edge_pix_ind, self.high_res, self.low_res)
         m = int(np.max(high_res_to_low_res_ind))
 
         output_ids = indices_2D_to_1D(high_res_to_low_res_ind, high_res_corr_edge_ind, m)
         unique_output_ids = np.unique(output_ids)
-
         filtered_corr_edge_ind, filtered_pix_ind = indices_1D_to_2D(unique_output_ids, m, mode='row-col').T
         filtered_re_indices = self.lowResReIndexMap[filtered_pix_ind]
 
-        num_ids = len(unique_output_ids)
-        output_re_index = np.arange(num_ids)
-        lia, locb = np.isin(output_ids, unique_output_ids, assume_unique=True)
-        output_re_index = output_re_index[locb]
+        _, output_re_index = np.unique(output_ids, return_inverse=True)
 
-        self.highResReIndexMap[high_res_indices] = np.arange(1, len(high_res_indices) + 1)
+        self.highResReIndexMap[high_res_indices] = np.arange(len(high_res_indices))
         high_res_re_indices = self.highResReIndexMap[high_res_sec_edge_pix_ind]
 
-        # PRE UPDATE
+        # PRE UPDATE input: pre_update_high_res_recon_unclamped, high_res_re_indices, high_res_sec_edge_pix_val
         pre_update_high_res_recon = np.minimum(1.0, pre_update_high_res_recon_unclamped)
-
-        pre_update_high_res_val = pre_update_high_res_recon[high_res_re_indices]
-
         pre_update_high_res_val_unclamped = pre_update_high_res_recon_unclamped[high_res_re_indices]
 
+        pre_update_high_res_val = pre_update_high_res_recon[high_res_re_indices]
         pre_update_high_res_val_minus_edges = np.minimum(1.0, pre_update_high_res_val_unclamped - high_res_sec_edge_pix_val)
         pre_update_high_res_val_plus_edges = np.minimum(1.0, pre_update_high_res_val_unclamped + high_res_sec_edge_pix_val)
 
@@ -268,6 +267,19 @@ class GreedyMultiSamplingDataObjectL2:
 
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
+
+    def get_f_adding(self):
+        f_adding = np.ones(self.n_edges) * np.inf
+        unset_edges = np.where(self.x == 0)[0]
+        B = multi_sample_correspondence_map(self.low_res, self.high_res)
+        for k in unset_edges:
+            x = self.x.copy()
+            x[k] = 1
+            Ax = (self.A_high_res @ x).squeeze()
+            CAx = np.clip(Ax, 0, 1)
+            BCAx = B @ CAx
+            f_adding[k] = np.sum((self.importance_map * (self.b_native_res - BCAx))**2)
+        return f_adding
 
     def compute_illegal_edge_indices(self, hook, illegal_pins: np.ndarray):
         if hook == illegal_pins:
