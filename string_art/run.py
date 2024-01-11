@@ -27,7 +27,7 @@ def run(image: np.ndarray, config: Config, name_of_the_run: str):
     # find/load optimal edges to approximate the image
     importance_map = np.ones((config.low_resolution, config.low_resolution))
     importance_map[~mask] = 0
-    x, picked_edges_sequence = load_picked_edges(image, importance_map, A_high_res, A_low_res, valid_edges_mask)
+    x = load_picked_edges(name_of_the_run, image, importance_map, A_high_res, A_low_res, valid_edges_mask)
 
     recon = np.minimum(1, np.dot(A_high_res, x))
     recon_image_high = np.reshape(recon, (A_high_res, config.high_resolution))

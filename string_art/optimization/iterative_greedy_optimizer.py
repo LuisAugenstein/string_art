@@ -7,9 +7,7 @@ class IterativeGreedyOptimizer:
     def __init__(self, loss: Loss, valid_edges_mask: np.ndarray) -> None:
         self.loss = loss
         self.valid_edges_mask = valid_edges_mask
-
         self.x = np.zeros_like(valid_edges_mask, dtype=int)
-        self.picked_edges_sequence = np.zeros(0, dtype=int)
 
     @property
     def removable_edge_indices(self) -> np.ndarray:
@@ -36,10 +34,10 @@ class IterativeGreedyOptimizer:
 
             switched = False
             self.__print_loss(step, i_next_edge, f_score)
-            self.__choose_string_and_update(i_next_edge, mode)
+            self.x[i_next_edge] = 1 if mode == 'add' else 0
             best_f_score = f_score
 
-        return self.x, self.picked_edges_sequence
+        return self.x
 
     def __find_best_string(self, mode: Literal['add', 'remove'] = 'add') -> tuple[np.ndarray, int]:
         f_scores = self.loss.get_f_scores(self.x, mode)
@@ -50,14 +48,6 @@ class IterativeGreedyOptimizer:
         i_next_edge = candidate_edge_indices[np.argmin(f_scores[candidate_edge_indices])]
         f_score = f_scores[i_next_edge]
         return i_next_edge, f_score
-
-    def __choose_string_and_update(self, i, mode: Literal['add', 'remove'] = 'add'):
-        if mode == 'remove':
-            self.x[i] = 0
-            self.picked_edges_sequence = self.picked_edges_sequence[self.picked_edges_sequence != i]
-        else:
-            self.x[i] = 1
-            self.picked_edges_sequence = np.hstack((self.picked_edges_sequence.T, [i])).T
 
     def __print_loss(self, step: int, i_next_edge: int, f_score: float):
         n_padding = len(str(self.valid_edges_mask.size)) - len(str(i_next_edge))
