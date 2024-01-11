@@ -5,7 +5,7 @@ from string_art.optimization import IterativeGreedyOptimizer, OptimizedLoss, Sim
 from string_art.io.root_path import get_project_dir
 
 
-def load_picked_edges(name_of_the_run: str, img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, valid_edges_mask: np.ndarray) -> np.ndarray:
+def load_picked_edges(name_of_the_run: str, image: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, valid_edges_mask: np.ndarray) -> np.ndarray:
     project_dir = get_project_dir(name_of_the_run)
     x_path = f'{project_dir}/x.npy'
     if os.path.exists(x_path):
@@ -13,7 +13,7 @@ def load_picked_edges(name_of_the_run: str, img: np.ndarray, importance_map: np.
 
     # The SimpleLoss produces the same results as the OptimizedLoss, but is much slower.
     # loss = SimpleLoss(img, np.ones_like(importance_map), A_high_res, np.sqrt(A_low_res.shape[0]).astype(int))
-    loss = OptimizedLoss(img, np.ones_like(importance_map), A_high_res, A_low_res)
+    loss = OptimizedLoss(image, np.ones_like(importance_map), A_high_res, A_low_res)
     optimizer = IterativeGreedyOptimizer(loss, valid_edges_mask)
     x = optimizer.optimize()
     np.save(x_path, x)

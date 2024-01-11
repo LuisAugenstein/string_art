@@ -11,5 +11,5 @@ def load_error_image(name_of_the_run: str, target_image: np.ndarray, recon_image
     if os.path.exists(image_path):
         return imageio.imread(image_path)
     error_image = get_error_image(target_image, recon_image_low)
-    imageio.imwrite(image_path, error_image)
+    imageio.imwrite(image_path, (error_image*255).astype(np.uint8))
     return error_image

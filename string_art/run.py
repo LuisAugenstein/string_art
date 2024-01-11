@@ -29,8 +29,9 @@ def run(image: np.ndarray, config: Config, name_of_the_run: str):
     importance_map[~mask] = 0
     x = load_picked_edges(name_of_the_run, image, importance_map, A_high_res, A_low_res, valid_edges_mask)
 
-    recon = np.minimum(1, np.dot(A_high_res, x))
-    recon_image_high = np.reshape(recon, (A_high_res, config.high_resolution))
+    # reconstruct image
+    recon = np.clip(A_high_res @ x, 0, 1)
+    recon_image_high = recon.reshape(config.high_resolution, config.high_resolution)
     recon_image_high = np.flipud(recon_image_high.T)
     recon_image_low = resize(recon_image_high, (config.low_resolution, config.low_resolution), mode='constant')
 
@@ -38,7 +39,7 @@ def run(image: np.ndarray, config: Config, name_of_the_run: str):
         recon_image_high = 1 - recon_image_high
         recon_image_low = 1 - recon_image_low
 
-    rmse_value = np.sqrt(np.mean((image - recon_image_low[mask])**2))
+    rmse_value = np.sqrt(np.mean((image[mask] - recon_image_low[mask])**2))
     print('RMSE: ', rmse_value)
 
     load_error_image(name_of_the_run, image, recon_image_low)

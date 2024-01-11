@@ -6,8 +6,8 @@ from string_art.transformations import indices_1D_high_res_to_low_res, indices_1
 
 
 class OptimizedLoss:
-    def __init__(self, img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix) -> None:
-        self.b_native_res = img.flatten()
+    def __init__(self, image: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix) -> None:
+        self.b_native_res = image.flatten()
         self.importance_map = importance_map.flatten()
         self.A_high_res = A_high_res
         self.A_low_res = A_low_res
