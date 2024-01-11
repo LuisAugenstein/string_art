@@ -13,5 +13,6 @@ class Loss(Protocol):
         Returns
         -
         f_scores: np.shape([n_edges])   the f_scores for each edge. The lowest f_score indicates which edge to add/remove next.
+        Note, that sqrt(f_scores / n_low_res_pixels) denotes the RMSE of the reconstruction after adding/removing the corresponding edge.
         """
         ...

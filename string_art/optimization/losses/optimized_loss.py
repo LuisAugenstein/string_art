@@ -25,6 +25,7 @@ class OptimizedLoss:
         self.n_edges = A_high_res.shape[1]
         self.low_res, self.high_res = int(np.sqrt(A_low_res.shape[0])), int(np.sqrt(A_high_res.shape[0]))
         self.correspondence_map = multi_sample_correspondence_map(self.low_res, self.high_res)
+        self.__x = np.zeros(self.n_edges)
 
         self.current_recon = np.zeros(A_high_res.shape[0])
         self.current_recon_unclamped = np.zeros(A_high_res.shape[0])
@@ -38,6 +39,13 @@ class OptimizedLoss:
         self.rmse_value = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
         self.f_adding, self.f_removing = self.__init_f_scores(self.importance_map, self.b_native_res, self.low_res_col_row_values,
                                                               self.diff_to_blank_squared_error_sum, self.n_edges)
+
+    def get_f_scores(self, x: np.ndarray, mode: Literal['add', 'remove'] = 'add') -> tuple[np.ndarray, np.ndarray]:
+        for edge_index in np.where(x != self.__x)[0]:
+            dif = x[edge_index] - self.__x[edge_index]
+            self.__choose_string_and_update(edge_index, dif)
+            self.__x[edge_index] = x[edge_index]
+        return self.f_adding if mode == 'add' else self.f_removing
 
     def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csr_matrix, diff_to_blank_squared_error_sum: float, n_edges: int) -> tuple[np.ndarray, np.ndarray]:
         low_res_corresp_edge_indices, low_res_edge_pixel_indices, low_res_edge_pixel_values = low_res_row_col_values
@@ -54,10 +62,7 @@ class OptimizedLoss:
         f_removing = diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_removing
         return f_adding, f_removing
 
-    def get_f_scores(self, _: np.ndarray, mode: Literal['add', 'remove'] = 'add') -> tuple[np.ndarray, np.ndarray]:
-        return self.f_adding if mode == 'add' else self.f_removing
-
-    def update_f_scores(self, edge_index: int, mode: Literal['add', 'remove'] = 'add') -> None:
+    def __choose_string_and_update(self, edge_index: int, dif: int) -> None:
         edge_pixel_indices, _, edge_values = find(self.A_high_res[:, edge_index])  # row_indices of pixels that are hit by string i
         low_res_indices = np.unique(indices_1D_high_res_to_low_res(edge_pixel_indices, self.high_res, self.low_res))
         high_res_indices = indices_1D_low_res_to_high_res(low_res_indices, self.low_res, self.high_res).T.flatten()
@@ -65,15 +70,14 @@ class OptimizedLoss:
         pre_update_high_res_recon_unclamped = self.current_recon_unclamped[high_res_indices]
         pre_update_low_res_recon = self.current_recon_native_res[low_res_indices]
 
-        dif = 1 if mode == 'add' else -1
         self.current_recon_unclamped[edge_pixel_indices] += dif * edge_values
         self.current_recon[edge_pixel_indices] = np.clip(self.current_recon_unclamped[edge_pixel_indices], 0, 1)
         self.current_recon_native_res[low_res_indices] = self.correspondence_map[low_res_indices, :] @ self.current_recon
 
         pre_update_errors = self.diff_to_blank_squared_errors[low_res_indices]
         self.diff_to_blank_squared_error_sum -= np.sum(pre_update_errors)
-        self.residual = self.importance_map * (self.b_native_res - self.current_recon_native_res)
-        self.diff_to_blank_squared_errors[low_res_indices] = self.residual[low_res_indices]**2
+        residual = self.importance_map[low_res_indices] * (self.b_native_res[low_res_indices] - self.current_recon_native_res[low_res_indices])
+        self.diff_to_blank_squared_errors[low_res_indices] = residual**2
         post_update_errors = self.diff_to_blank_squared_errors[low_res_indices]
         self.diff_to_blank_squared_error_sum += np.sum(post_update_errors)
         self.rmse_value = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
@@ -199,6 +203,4 @@ class OptimizedLoss:
                                                             minlength=self.n_edges)
 
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
-        x = failure_pre_update_per_edge_adding[282]
-        y = failure_post_update_per_edge_adding[282]
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
