@@ -14,7 +14,8 @@ def precompute_string_matrices(n_pins: int, pin_side_length: float, string_thick
     pins = get_pins(n_pins, radius=0.5*high_res, width=pin_side_length/string_thickness)
     connection_lines = get_all_possible_pin_connections(pins)
     fabricable_lines, fabricable = filter_lines_for_fabricability(connection_lines, pins, min_angle)
-    strings = lines_to_strings_in_positive_domain(fabricable_lines, high_res)
+    # strings = lines_to_strings_in_positive_domain(fabricable_lines, high_res)
+    strings = lines_to_strings_in_positive_domain(connection_lines, high_res)
     strings = filter_string_boundaries(strings, high_res)
 
     high_res_matrix = strings_to_sparse_matrix(strings, high_res)
