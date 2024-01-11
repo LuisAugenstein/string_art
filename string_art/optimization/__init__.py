@@ -1,1 +1,2 @@
-from .optimize_strings_greedy_multi_sampling import optimize_strings_greedy_multi_sampling
+from .iterative_greedy_optimizer import IterativeGreedyOptimizer
+from .losses import *

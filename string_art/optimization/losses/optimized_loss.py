@@ -1,17 +1,12 @@
 import numpy as np
-from scipy.sparse import find, csr_matrix
-import numpy as np
-from string_art.optimization.multi_sample_correspondence_map import multi_sample_correspondence_map
-from string_art.optimization.split_apart_string_matrix import get_index_to_index_map
-from scipy.sparse import csr_matrix, find
-from string_art.transformations import PinEdgeTransformer, indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
-from string_art.preprocessing import create_circular_mask
-import matplotlib.pyplot as plt
 from typing import Literal
+from scipy.sparse import find, csr_matrix
+from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
+from string_art.transformations import indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 
 
 class OptimizedLoss:
-    def __init__(self, img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix):
+    def __init__(self, img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix) -> None:
         self.b_native_res = img.flatten()
         self.importance_map = importance_map.flatten()
         self.A_high_res = A_high_res
@@ -19,8 +14,8 @@ class OptimizedLoss:
 
         self.low_res_col_row_values = find(A_low_res.T)
         self.high_res_col_row_values = find(A_high_res.T)
-        self.high_res_index_to_index_map = get_index_to_index_map(A_high_res)
-        self.low_res_index_to_index_map = get_index_to_index_map(A_low_res)
+        self.high_res_index_to_index_map = self.__get_index_to_index_map(A_high_res)
+        self.low_res_index_to_index_map = self.__get_index_to_index_map(A_low_res)
 
         self.n_edges = A_high_res.shape[1]
         self.low_res, self.high_res = int(np.sqrt(A_low_res.shape[0])), int(np.sqrt(A_high_res.shape[0]))
@@ -204,3 +199,19 @@ class OptimizedLoss:
 
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
+
+    def __get_index_to_index_map(self, A: csr_matrix) -> csr_matrix:
+        """
+        Parameters
+        -
+        A: np.shape([n_pixels, n_edges])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
+
+        Returns
+        -
+        index_to_index_map: np.shape([n_values_in_A, n_pixels]) binary matrix which contains a single 1 in each row (i,edge_pixel_indices[i]) and otherwise 0. 
+        """
+        _, edge_pixel_indices, _ = find(A.T)
+        n_values_in_A = edge_pixel_indices.shape[0]
+        data = np.ones(n_values_in_A)
+        index_to_index_map = csr_matrix((data, (np.arange(n_values_in_A), edge_pixel_indices)), shape=(n_values_in_A, A.shape[0]))
+        return index_to_index_map

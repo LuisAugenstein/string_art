@@ -1,12 +1,9 @@
-import os
 import numpy as np
 from string_art.config import Config
 import imageio.v3 as imageio
 from string_art.preprocessing.preprocess_image import mask_image, resize_image
-from string_art.preprocessing import get_pins, precompute_string_matrices
 from string_art.io import load_picked_edges, load_string_matrices, load_error_image, root_path
 from skimage.transform import resize
-from string_art.transformations import PinEdgeTransformer
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
 

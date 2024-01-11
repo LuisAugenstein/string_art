@@ -1,5 +1,5 @@
 # String Art
-This repository aims to reproduce the results of ["String Art: Towards Computational Fabrication of String Images"](https://www.geometrie.tuwien.ac.at/geom/ig/publications/stringart/stringart.pdf). The original [code](https://github.com/Exception1984/StringArt) was implemented in Matlab. This project implements the proposed algorithm in python and tries to make it more accessible. 
+This repository aims to reproduce the results of ["String Art: Towards Computational Fabrication of String Images"](https://www.geometrie.tuwien.ac.at/geom/ig/publications/stringart/stringart.pdf). The original [code](https://github.com/Exception1984/StringArt) was implemented in Matlab. This project restructures the code and implements the proposed algorithm in python to make it more accessible. 
 
 # Installation
 The following setup assumes you are using miniconda on Ubuntu after you have cloned the repo
@@ -30,4 +30,4 @@ edges=np.repeat([(i, j) for i in pins for j in pins[i+1:]], 4, axis=0)
 
 Note, that instead of representing an edge by its start and end pin indices $(p_i, p_j)$ we can also just define and edge by its index $e_k$. Also note, that the connection types $3$ and $4$ can be always associated to one specific edge. To assign connection types $1$ and $2$ we need to know whether the edge is ingoing or outgoing. For `n_pins` pins there are `n_edges = 4*n_choose_k(n_pins, 2)` possible edges that can be drawn. 
 
-`Strings` are obtained by actually drawing an edge onto an image. A `String` is a list of pixels with coordinates $(x,y)$ and a grayscale value $v$.
+`Strings` are obtained by actually drawing an edge onto an image. A `String` is a list of pixels each with its own coordinates $(x,y)$ and a grayscale value $v$.
