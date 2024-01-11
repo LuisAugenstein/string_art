@@ -1,12 +1,11 @@
 import numpy as np
-from skimage.transform import resize
-from scipy.sparse import csr_matrix, find
-from string_art.entities import Pin, String
+from scipy.sparse import find
+from string_art.entities import String
 from string_art.preprocessing.filter_string_boundaries import filter_string_boundaries
 from string_art.preprocessing.get_all_possible_pin_connections import get_all_possible_pin_connections
 from string_art.preprocessing.lines_to_strings_in_positive_domain import lines_to_strings_in_positive_domain
 from string_art.preprocessing.get_pins import get_pins
-from string_art.transformations import strings_to_sparse_matrix
+from string_art.transformations import strings_to_sparse_matrix, imresize
 from string_art.preprocessing.filter_lines_for_fabricability import filter_lines_for_fabricability
 
 
@@ -31,7 +30,7 @@ def strings_to_lower_resolution(strings: list[String], high_res: int, low_res: i
         image = np.zeros((high_res, high_res))
         x, y, v = string.T
         image[x, y] = v
-        low_res_image = resize(image, (low_res, low_res), mode='constant')
+        low_res_image = imresize(image, output_shape=(low_res, low_res))
         low_res_string = find(low_res_image)
         low_res_strings.append(np.vstack(low_res_string).T)
     return low_res_strings

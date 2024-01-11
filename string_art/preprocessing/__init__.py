@@ -1,4 +1,5 @@
-from .preprocess_image import mask_image, resize_image, create_circular_mask
+from .create_circular_mask import create_circular_mask
+from .preprocess_image import preprocess_image
 
 from .get_pins import get_pins, circular_pin_positions
 from .precompute_string_matrices import precompute_string_matrices, strings_to_sparse_matrix, strings_to_lower_resolution
