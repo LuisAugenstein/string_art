@@ -1,30 +1,24 @@
 import numpy as np
 from scipy.sparse import csr_matrix, find
 import matplotlib.pyplot as plt
-from string_art.optimization.optimized_loss import OptimizedLoss
-from string_art.optimization.simple_loss import SimpleLoss
+from string_art.optimization.losses import Loss
 
 MIN_CIRCLE_LENGTH = 1
 
 
 class GreedyMultiSamplingDataObjectL2:
-    def __init__(self, img: np.ndarray, importance_map: np.ndarray,  A_high_res: csr_matrix, A_low_res: csr_matrix, valid_edges_mask: np.ndarray):
+    def __init__(self, loss: Loss, valid_edges_mask: np.ndarray):
         """
         img: np.shape([low_res, low_res])
         importance_map: np.shape([low_res, low_res])
         A_high_res: np.shape([high_res**2, n_edges])
         A_low_res: np.shape([low_res**2, n_edges])
         """
-        self.n_edges = A_high_res.shape[1]
-        self.low_res = np.sqrt(A_low_res.shape[0]).astype(int)
-        self.high_res = np.sqrt(A_high_res.shape[0]).astype(int)
-
-        self.loss = OptimizedLoss(img, np.ones_like(importance_map), A_high_res, A_low_res)
-        self.simple_loss = SimpleLoss(img, np.ones_like(importance_map), A_high_res, self.low_res)
+        self.loss = loss
         self.valid_edges_mask = valid_edges_mask
 
         self.removalMode = False
-        self.x = np.zeros(self.n_edges)
+        self.x = np.zeros_like(valid_edges_mask, dtype=int)
         self.picked_edges_sequence = np.zeros(0, dtype=int)
 
     @property
@@ -54,26 +48,6 @@ class GreedyMultiSamplingDataObjectL2:
             self.picked_edges_sequence = np.hstack((self.picked_edges_sequence.T, [i])).T
 
         print(f'\tF2 when picking edge Nr. {i}: {np.sum(self.loss.residual**2):16.16f}\n\n')
-
-    def compute_illegal_edge_indices(self, hook, illegal_pins: np.ndarray):
-        if hook == illegal_pins:
-            return np.zeros(0, dtype=int)
-
-        if illegal_pins.shape[0] == 1:
-            illegal_pins = np.column_stack((illegal_pins, illegal_pins))
-
-        lately_visited_indices = np.tile(illegal_pins.T, (self.edges_to_pins.shape[0], 1))
-        lately_from = np.any(lately_visited_indices == np.tile(self.edges_to_pins[:, 0], (1, illegal_pins.shape[1])), axis=1)
-        lately_to = np.any(lately_visited_indices == np.tile(self.edges_to_pins[:, 1], (1, illegal_pins.shape[1])), axis=1)
-
-        curr = np.tile(hook, (self.edges_to_pins.shape[0], 1))
-        curr_from = curr == np.tile(self.edges_to_pins[:, 0], (1, 1))
-        curr_to = curr == np.tile(self.edges_to_pins[:, 1], (1, 1))
-
-        res = np.logical_or(np.logical_and(lately_from, curr_to), np.logical_and(lately_to, curr_from))
-        k, _, _ = np.where(res)
-
-        return k
 
     def show_current(self):
         plt.figure(1)

@@ -15,8 +15,8 @@ class SimpleLoss:
         high_res, n_edges = np.sqrt(self.A_high_res.shape[0]).astype(int), self.A_high_res.shape[1]
         B = multi_sample_correspondence_map(self.low_res, high_res)
         f_scores = np.ones(n_edges) * np.inf
-        unset_edges = np.where(x == 0)[0]
-        for k in unset_edges:
+        candidate_edges = np.where(x == 0)[0] if mode == 'add' else np.where(x == 1)[0]
+        for k in candidate_edges:
             x_current = x.copy()
             x_current[k] = 1
             Ax = (self.A_high_res @ x_current).squeeze()

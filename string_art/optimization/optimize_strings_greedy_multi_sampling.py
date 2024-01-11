@@ -2,10 +2,13 @@ import numpy as np
 from string_art.optimization.greedy_multi_sampling_data_object_l2 import GreedyMultiSamplingDataObjectL2
 from scipy.sparse import csr_matrix
 from string_art.transformations import PinEdgeTransformer
+from string_art.optimization.losses import SimpleLoss, OptimizedLoss
 
 
 def optimize_strings_greedy_multi_sampling(img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, valid_edges_mask: np.ndarray):
-    obj = GreedyMultiSamplingDataObjectL2(img, importance_map, A_high_res, A_low_res, valid_edges_mask)
+    loss = OptimizedLoss(img, np.ones_like(importance_map), A_high_res, A_low_res)
+    simple_loss = SimpleLoss(img, np.ones_like(importance_map), A_high_res, np.sqrt(A_low_res.shape[0]).astype(int))
+    obj = GreedyMultiSamplingDataObjectL2(loss, valid_edges_mask)
 
     iterative_step_size = 1
     iteration = 0
