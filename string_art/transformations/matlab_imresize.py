@@ -1,6 +1,10 @@
 import numpy as np
 from math import ceil
 
+"""
+implementation taken from https://github.com/fatheral/matlab_imresize
+"""
+
 
 def deriveSizeFromScale(img_shape, scale):
     output_shape = []
