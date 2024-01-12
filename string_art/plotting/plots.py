@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib.axes import Axes
 from string_art.entities import Pin, Line, String
+from matplotlib.lines import Line2D
 
 
 def plot_pins(ax: Axes, hook_array: list[Pin], offset=0., colored_hook_indices=[]) -> None:
@@ -10,11 +11,12 @@ def plot_pins(ax: Axes, hook_array: list[Pin], offset=0., colored_hook_indices=[
         ax.set_aspect('equal', adjustable='box')
 
 
-def plot_lines(ax: Axes, lines: Line | list[Line]) -> None:
-    if isinstance(lines, Line):
-        lines = [lines]
-    for l in lines:
-        ax.plot([l.start[0], l.end[0]], [l.start[1], l.end[1]], 'black')
+def plot_line(ax: Axes, line: Line) -> Line2D:
+    return ax.plot([line.start[0], line.end[0]], [line.start[1], line.end[1]], 'black')[0]
+
+
+def plot_lines(ax: Axes, lines: list[Line]) -> list[Line2D]:
+    return [plot_line(ax, line) for line in lines]
 
 
 def plot_strings(ax: Axes, strings: list[String],  resolution: int, s=1) -> None:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from math import pi
+from math import pi, comb
 
 
 @dataclass
@@ -21,6 +21,12 @@ class Config:
     """Minimum angle between two vectors from center to two pins. 
        Prevents strings from getting spanned between two pins that are very close. 
        A lower min_angle decreases performance since the optimizer has to consider more possible string connections."""
+    plot_optimization = True
+    """Whether to show an animation of the string selection process during the optimization."""
+
+    @property
+    def n_edges(self) -> int:
+        return comb(self.n_pins, 2)
 
     @property
     def pin_width(self) -> float:

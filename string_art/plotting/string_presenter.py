@@ -3,6 +3,11 @@ from matplotlib.figure import Figure
 
 
 class StringPresenter:
+    """
+    A class to visualize strings in a matplotlib figure such that the user can 
+    interactively switch between the number of shown strings using the left and right keys.
+    """
+
     def __init__(self, fig: Figure, update_plot: callable, max_line: int) -> None:
         self.fig = fig
         self.update_plot = update_plot

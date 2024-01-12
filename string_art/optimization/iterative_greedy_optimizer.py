@@ -18,14 +18,14 @@ class IterativeGreedyOptimizer:
     def addable_edge_indices(self) -> np.ndarray:
         return np.where((self.x == 0) & self.valid_edges_mask)[0]
 
-    def optimize(self, callback: OptimizationCallback | None = None, n_steps=1000) -> np.ndarray:
+    def optimize(self, callbacks: list[OptimizationCallback] = [], n_steps=1000) -> np.ndarray:
         """
         Parameters
         -
         callback: 
         """
-        if callback is None:
-            callback = LoggingCallback(self.x.size)
+        if len(callbacks) == 0:
+            callbacks = [LoggingCallback(self.x.size)]
         best_f_score = np.inf
         mode = 'add'
         switched = False
@@ -33,16 +33,16 @@ class IterativeGreedyOptimizer:
         for step in range(1, n_steps + 1):
             i_next_edge, f_score = self.__find_best_string(mode)
             if f_score is None or f_score >= best_f_score:
-                callback.choose_next_edge(step, None, None)
+                [c.choose_next_edge(step, None, None) for c in callbacks]
                 if switched:
                     break
                 switched = True
                 new_mode = 'remove' if mode == 'add' else 'add'
-                callback.switch_mode(new_mode)
+                [c.switch_mode(new_mode) for c in callbacks]
                 continue
 
             switched = False
-            callback.choose_next_edge(step, i_next_edge, f_score)
+            [c.choose_next_edge(step, i_next_edge, f_score) for c in callbacks]
             self.x[i_next_edge] = 1 if mode == 'add' else 0
             best_f_score = f_score
 

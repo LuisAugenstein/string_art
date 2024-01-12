@@ -4,6 +4,7 @@ from string_art.preprocessing import create_circular_mask, preprocess_image
 from string_art.io import load_picked_edges, load_string_matrices, load_error_image
 import matplotlib.pyplot as plt
 from string_art.transformations import imresize
+from string_art.optimization import LoggingCallback, PlottingCallback
 
 
 def run(image: np.ndarray, config: Config, name_of_the_run: str):
@@ -21,8 +22,12 @@ def run(image: np.ndarray, config: Config, name_of_the_run: str):
     importance_map = np.ones((config.low_resolution, config.low_resolution))
     importance_map[~mask] = 0
     plt.imshow(image)
+    plt.show(block=False)
+    callbacks = [LoggingCallback(config.n_edges)]
+    if config.plot_optimization:
+        callbacks.append(PlottingCallback(config.n_pins, config.high_resolution, config.pin_side_length, config.string_thickness))
+    x = load_picked_edges(name_of_the_run, image, importance_map, A_high_res, A_low_res, valid_edges_mask, callbacks)
     plt.show()
-    x = load_picked_edges(name_of_the_run, image, importance_map, A_high_res, A_low_res, valid_edges_mask)
 
     # reconstruct image
     recon = np.clip(A_high_res @ x, 0, 1)
