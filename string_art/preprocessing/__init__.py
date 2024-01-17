@@ -7,3 +7,4 @@ from .precompute_string_matrices import precompute_string_matrices, strings_to_s
 from .get_all_possible_pin_connections import get_all_possible_pin_connections
 from .lines_to_strings_in_positive_domain import lines_to_strings_in_positive_domain
 from .filter_string_boundaries import filter_string_boundaries
+from .get_fabricability_mask import get_fabricability_mask

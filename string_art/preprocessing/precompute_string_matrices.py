@@ -6,13 +6,13 @@ from string_art.preprocessing.get_all_possible_pin_connections import get_all_po
 from string_art.preprocessing.lines_to_strings_in_positive_domain import lines_to_strings_in_positive_domain
 from string_art.preprocessing.get_pins import get_pins
 from string_art.transformations import strings_to_sparse_matrix, imresize
-from string_art.preprocessing.filter_lines_for_fabricability import filter_lines_for_fabricability
+from string_art.preprocessing.get_fabricability_mask import get_fabricability_mask
 
 
 def precompute_string_matrices(n_pins: int, pin_side_length: float, string_thickness: float, min_angle: float, high_res: int, low_res: float):
     pins = get_pins(n_pins, radius=0.5*high_res, width=pin_side_length/string_thickness)
+    fabricable = get_fabricability_mask(pins, min_angle)
     connection_lines = get_all_possible_pin_connections(pins)
-    fabricable_lines, fabricable = filter_lines_for_fabricability(connection_lines, pins, min_angle)
     # strings = lines_to_strings_in_positive_domain(fabricable_lines, high_res)
     strings = lines_to_strings_in_positive_domain(connection_lines, high_res)
     strings = filter_string_boundaries(strings, high_res)
@@ -30,7 +30,11 @@ def strings_to_lower_resolution(strings: list[String], high_res: int, low_res: i
         image = np.zeros((high_res, high_res))
         x, y, v = string.T
         image[x, y] = v
-        low_res_image = imresize(image, output_shape=(low_res, low_res))
+        # fast image resize
+        low_res_image = image.reshape(low_res, high_res // low_res, low_res, high_res // low_res).mean(axis=(1, 3))
+
+        # image resize like in the matlab code
+        # low_res_image = imresize(image, output_shape=(low_res, low_res))
         low_res_string = find(low_res_image)
         low_res_strings.append(np.vstack(low_res_string).T)
     return low_res_strings
