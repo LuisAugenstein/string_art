@@ -15,18 +15,16 @@ def cubic(x):
     return f
 
 
-def contributions(in_length, out_length, scale, kernel, k_width):
-    if scale < 1:
-        def h(x): return scale * kernel(scale * x)
-        kernel_width = 1.0 * k_width / scale
-    else:
-        h = kernel
-        kernel_width = k_width
+def contributions(in_length, out_length, kernel=cubic, k_width=4.0):
+    scale = out_length / in_length
     x = np.arange(1, out_length+1).astype(np.float64)
-    u = x / scale + 0.5 * (1 - 1 / scale)
+    u = (x + (scale - 1) / 2) / scale
+    scale = np.clip(scale, -np.inf, 1.0)
+    def h(x): return scale * kernel(scale * x)
+    kernel_width = k_width / scale
+
     left = np.floor(u - kernel_width / 2)
-    P = int(ceil(kernel_width)) + 2
-    ind = np.expand_dims(left, axis=1) + np.arange(P) - 1  # -1 because indexing from 0
+    ind = np.expand_dims(left, axis=1) + np.arange(-1, ceil(kernel_width) + 1)  # -1 because indexing from 0
     indices = ind.astype(np.int32)
     weights = h(np.expand_dims(u, axis=1) - indices - 1)  # -1 because indexing from 0
     weights = np.divide(weights, np.expand_dims(np.sum(weights, axis=1), axis=1))
@@ -38,14 +36,21 @@ def contributions(in_length, out_length, scale, kernel, k_width):
     return weights, indices
 
 
-def imresizevec(inimg, weights, indices, dim):
-    wshape = weights.shape
+def imresizevec(inimg: np.ndarray, weights: np.ndarray, indices: np.ndarray, dim: int) -> np.ndarray:
+    """
+    inimg: np.shape([width, height])
+    weights: np.shape([low_res, n_channels])
+    indices: np.shape([low_res, n_channels])
+    """
     if dim == 0:
-        weights = weights.reshape((wshape[0], wshape[2], 1, 1))
-        outimg = np.sum(weights*((inimg[indices].squeeze(axis=1)).astype(np.float64)), axis=1)
+        weights = np.expand_dims(weights, axis=-1)  # low_res, n_channels, 1
+        img = inimg[indices]                        # low_res, n_channels, height
+        outimg = np.sum(weights*img, axis=1)        # low_res, height
     elif dim == 1:
-        weights = weights.reshape((1, wshape[0], wshape[2], 1))
-        outimg = np.sum(weights*((inimg[:, indices].squeeze(axis=2)).astype(np.float64)), axis=2)
+        weights = np.expand_dims(weights, axis=0)   # 1, low_res, n_channels
+        img = inimg[:, indices]                     # low_res, low_res, n_channels
+        outimg = np.sum(weights*img, axis=2)        # low_res, low_res
+
     if inimg.dtype == np.uint8:
         outimg = np.clip(outimg, 0, 255)
         return np.around(outimg).astype(np.uint8)
@@ -54,21 +59,8 @@ def imresizevec(inimg, weights, indices, dim):
 
 
 def imresize(I, output_shape=None):
-    scale = [output_shape[k] / I.shape[k] for k in range(2)]
-    output_size = list(output_shape)
-
-    scale_np = np.array(scale)
-    order = np.argsort(scale_np)
-    weights = []
-    indices = []
-    for k in range(2):
-        w, ind = contributions(I.shape[k], output_size[k], scale[k], kernel=cubic, k_width=4.0)
-        weights.append(w)
-        indices.append(ind)
     B = np.copy(I)
-    B = np.expand_dims(B, axis=2)
     for k in range(2):
-        dim = order[k]
-        B = imresizevec(B, weights[dim], indices[dim], dim)
-    B = np.squeeze(B, axis=2)
+        weights, indices = contributions(I.shape[k], output_shape[k])
+        B = imresizevec(B, weights.squeeze(), indices.squeeze(), k)
     return B
