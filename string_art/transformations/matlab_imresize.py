@@ -20,17 +20,18 @@ def contributions(in_length, out_length, kernel=cubic, k_width=4.0):
     x = np.arange(1, out_length+1).astype(np.float64)
     u = (x + (scale - 1) / 2) / scale
     scale = np.clip(scale, -np.inf, 1.0)
-    def h(x): return scale * kernel(scale * x)
     kernel_width = k_width / scale
-
     left = np.floor(u - kernel_width / 2)
-    ind = np.expand_dims(left, axis=1) + np.arange(-1, ceil(kernel_width) + 1)  # -1 because indexing from 0
-    indices = ind.astype(np.int32)
-    weights = h(np.expand_dims(u, axis=1) - indices - 1)  # -1 because indexing from 0
-    weights = np.divide(weights, np.expand_dims(np.sum(weights, axis=1), axis=1))
+
+    indices = (left[:, None] + np.arange(-1, ceil(kernel_width) + 1)).astype(np.int32)  # -1 because indexing from 0
+    kernel_input = np.expand_dims(u, axis=1) - indices - 1
+    weights = scale * kernel(scale * kernel_input)  # -1 because indexing from 0
+
+    weights /= np.sum(weights, axis=1)[:, None]
     aux = np.concatenate((np.arange(in_length), np.arange(in_length - 1, -1, step=-1))).astype(np.int32)
-    indices = aux[np.mod(indices, aux.size)]
-    ind2store = np.nonzero(np.any(weights, axis=0))
+    i_mod = np.mod(indices, aux.size)
+    indices = aux[i_mod]
+    ind2store = np.nonzero(np.any(weights, axis=0))  # indices of the columns that contain at least one non-zero element
     weights = weights[:, ind2store]
     indices = indices[:, ind2store]
     return weights, indices
