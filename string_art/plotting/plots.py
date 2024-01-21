@@ -12,17 +12,16 @@ def plot_pins(ax: Axes, hook_array: list[Pin], offset=0., colored_hook_indices=[
 
 
 def plot_line(ax: Axes, line: Line) -> Line2D:
-    return ax.plot([line.start[0], line.end[0]], [line.start[1], line.end[1]], 'black')[0]
+    return ax.plot(line[:, 0], line[:, 1], 'black')[0]
 
 
 def plot_lines(ax: Axes, lines: list[Line]) -> list[Line2D]:
     return [plot_line(ax, line) for line in lines]
 
 
-def plot_strings(ax: Axes, strings: list[String],  resolution: int, s=1) -> None:
+def plot_strings(ax: Axes, strings: list[String],  resolution: int) -> None:
     image = np.zeros((resolution, resolution))
     for string in strings:
-        for x, y, v in string:
-            x, y = int(x), int(y)
-            image[x, y] = min(1, image[x, y]+v)
+        x, y, v = string
+        image[x, y] = np.clip(image[x, y]+v, 0, 1)
     ax.imshow(1-image, cmap='gray', vmin=0, vmax=1)
