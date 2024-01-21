@@ -12,7 +12,7 @@ def load_picked_edges(name_of_the_run: str, image: np.ndarray, importance_map: n
         return np.load(x_path)
 
     # The SimpleLoss produces the same results as the OptimizedLoss, but is much slower.
-    # loss = SimpleLoss(img, np.ones_like(importance_map), A_high_res, np.sqrt(A_low_res.shape[0]).astype(int))
+    # loss = SimpleLoss(image, np.ones_like(importance_map), A_high_res, np.sqrt(A_low_res.shape[0]).astype(int))
     loss = OptimizedLoss(image, np.ones_like(importance_map), A_high_res, A_low_res)
     optimizer = IterativeGreedyOptimizer(loss, valid_edges_mask)
     x = optimizer.optimize(callbacks)

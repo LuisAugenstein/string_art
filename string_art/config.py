@@ -23,6 +23,7 @@ class Config:
        A lower min_angle decreases performance since the optimizer has to consider more possible string connections."""
     plot_optimization = True
     """Whether to show an animation of the string selection process during the optimization."""
+    name_of_the_run = 'test'
 
     @property
     def n_edges(self) -> int:
@@ -34,14 +35,14 @@ class Config:
         return self.pin_side_length / self.string_thickness
 
     @property
-    def high_resolution(self) -> int:
-        """width of the frame in pixel. should be a power of 2. Set frame_diameter and string_thickness accordingly."""
+    def high_res(self) -> int:
+        """resolution/width of the frame in pixel. should be a power of 2. Set frame_diameter and string_thickness accordingly."""
         return int(self.frame_diameter // self.string_thickness)
 
     @property
-    def low_resolution(self) -> int:
-        return int(self.high_resolution // self.super_sampling_window_width)
+    def low_res(self) -> int:
+        return int(self.high_res // self.super_sampling_window_width)
 
 
-def get_config() -> Config:
+def get_default_config() -> Config:
     return Config()
