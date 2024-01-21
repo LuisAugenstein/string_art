@@ -1,3 +1,6 @@
-from .line import Line, String
+from .line import Line, Lines
 from .pin import Pin
-from .connection_type import ConnectionType, N_CONNECTION_TYPES, connection_type_masks
+from .string import String
+from .edge import Edge
+
+from .pin_factory import get_pins, circular_pin_positions
