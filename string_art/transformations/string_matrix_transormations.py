@@ -13,7 +13,7 @@ def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csr_matr
     n_pixels, n_edges = resolution**2, len(strings)
     rows, cols, values = [], [], []
     for j, string in enumerate(strings):
-        x, y, v = string.T
+        x, y, v = string
         i = indices_2D_to_1D(x, y, resolution)
         rows.append(i)
         cols.append([j]*v.shape[0])
@@ -29,5 +29,5 @@ def sparse_matrix_to_strings(A: csr_matrix) -> list[String]:
     for j in range(n_edges):
         i, _, v = find(A[:, j])
         x, y = indices_1D_to_2D(i, resolution).T
-        strings.append(np.vstack([x, y, v]).T)
+        strings.append((x, y, v))
     return strings

@@ -59,9 +59,9 @@ def imresizevec(inimg: np.ndarray, weights: np.ndarray, indices: np.ndarray, dim
         return outimg
 
 
-def imresize(I, output_shape=None):
-    B = np.copy(I)
+def matlab_imresize(img: np.ndarray, output_shape) -> np.ndarray:
+    B = np.copy(img)
     for k in range(2):
-        weights, indices = contributions(I.shape[k], output_shape[k])
+        weights, indices = contributions(img.shape[k], output_shape[k])
         B = imresizevec(B, weights.squeeze(), indices.squeeze(), k)
     return B

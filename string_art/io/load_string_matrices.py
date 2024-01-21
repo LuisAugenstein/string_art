@@ -1,7 +1,6 @@
 import os
 from scipy.sparse import load_npz, save_npz, csr_matrix
-from scipy.io import loadmat
-from string_art.preprocessing import precompute_string_matrices
+from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_matrix
 from string_art.io.root_path import root_path
 from string_art.io.mkdir import mkdir
 import numpy as np
@@ -16,16 +15,15 @@ def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: 
     valid_edges_mask: np.shape([n_edges], dtype=bool)        False for excluding edges from the optimization.
     """
     string_matrices_dir = f"{root_path}/data/string_matrices"
-    config_dir = f'{string_matrices_dir}/{n_pins}_{pin_side_length}_{string_thickness}_{min_angle}_{high_res}_{low_res}'
-    mkdir(config_dir)
-    matrix_paths = [f'{config_dir}/A_high_res.mat', f'{config_dir}/A_low_res.mat', f'{config_dir}/valid_edges_mask.npy']
+    config_dir = f'{string_matrices_dir}/{n_pins}_{pin_side_length}_{string_thickness}_{min_angle:.4f}_{high_res}_{low_res}'
+    matrix_paths = [f'{config_dir}/A_high_res.npz', f'{config_dir}/A_low_res.npz', f'{config_dir}/valid_edges_mask.npy']
     if os.path.exists(config_dir) and all([os.path.exists(path) for path in matrix_paths]):
-        # high_res_matrix, low_res_matrix = [load_npz(path) for path in matrix_paths[:2]]
-        A_high_res, A_low_res = [loadmat(path)['A'] for path in matrix_paths[:2]]
+        A_high_res, A_low_res = [load_npz(path) for path in matrix_paths[:2]]
         valid_edges_mask = np.load(matrix_paths[2])
     else:
-        A_high_res, A_low_res, valid_edges_mask = precompute_string_matrices(
-            n_pins, pin_side_length, string_thickness, min_angle, high_res, low_res)
+        A_high_res, valid_edges_mask = precompute_string_matrix(n_pins, pin_side_length, string_thickness, min_angle, high_res)
+        A_low_res = high_res_to_low_res_matrix(A_high_res, low_res)
+        mkdir(config_dir)
         save_npz(matrix_paths[0], A_high_res)
         save_npz(matrix_paths[1], A_low_res)
         np.save(matrix_paths[2], valid_edges_mask)
