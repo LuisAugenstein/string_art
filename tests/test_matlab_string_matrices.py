@@ -16,10 +16,8 @@ def test_with_matlab_string_matrices():
     A_high_res_matlab = loadmat(f'tests/data/A_high_res.mat')['A']
 
     def sparse_matrices_all_close(A: csc_matrix, B: csc_matrix) -> bool:
-        for edge_index in range(A.shape[1]):
-            i, _, v = find(A[:, edge_index])
-            i2, _, v2 = find(B[:, edge_index])
-            if not np.allclose(i, i2) or not np.allclose(v, v2):
+        for j in range(A.shape[1]):
+            if not np.allclose(A[:, j].indices, B[:, j].indices) or not np.allclose(A[:, j].data, A[:, j].data):
                 return False
         return True
 
