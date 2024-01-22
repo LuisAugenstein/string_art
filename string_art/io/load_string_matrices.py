@@ -22,6 +22,7 @@ def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: 
         A_high_res, valid_edges_mask = load_npz(high_res_path), np.load(valid_edges_mask_path)
     else:
         A_high_res, valid_edges_mask = precompute_string_matrix(n_pins, pin_side_length, string_thickness, min_angle, high_res)
+        print('saving A_high_res to disk...')
         mkdir(config_dir)
         save_npz(high_res_path, A_high_res)
         np.save(valid_edges_mask_path, valid_edges_mask)
@@ -31,6 +32,7 @@ def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: 
         A_low_res = load_npz(low_res_path)
     else:
         A_low_res = high_res_to_low_res_matrix(A_high_res, low_res)
+        print('saving A_low_res to disk...')
         save_npz(low_res_path, A_low_res)
 
     return A_high_res, A_low_res, valid_edges_mask

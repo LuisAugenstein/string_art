@@ -10,7 +10,7 @@ conda activate string_art
 conda install pip
 pip install -r requirements.txt
 mkdir -p ~/miniconda3/envs/string_art/etc/conda/activate.d
-echo 'export PYTHONPATH=/path/to/string_art' >> ~miniconda3/envs/string_art/etc/conda/activate.d/env_vars.sh
+echo 'export PYTHONPATH=/path/to/string_art' >> ~/miniconda3/envs/string_art/etc/conda/activate.d/env_vars.sh
 ```
 
 # Get Started
