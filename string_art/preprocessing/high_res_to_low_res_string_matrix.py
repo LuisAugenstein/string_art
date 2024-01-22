@@ -6,7 +6,10 @@ from typing import Callable
 
 
 def high_res_to_low_res_matrix(A_high_res: csc_matrix, low_res: int) -> csc_matrix:
-    def col_mapping(i, _, v): return high_res_to_low_res_indices_optimized(i, v, A_high_res.shape[0], low_res)
+    def col_mapping(i: np.ndarray, _, v: np.ndarray):
+        if i.shape[0] == 0:
+            return i, v
+        return high_res_to_low_res_indices_optimized(i, v, A_high_res.shape[0], low_res)
 
     print(f'Compute A_low_res for low_res={low_res}')
     A_low_res = sparse_matrix_col_map(col_mapping, A_high_res, low_res**2, use_tqdm=True)
