@@ -1,10 +1,11 @@
 import numpy as np
 from string_art.entities import Line, String
 from skimage import draw
+from string_art.config import get_config
 
 
 def draw_line(line: Line) -> String:
-    performance_mode = False
+    performance_mode = get_config().performance_mode
     if performance_mode:
         start, end = line
         x, y = draw.line(start[0], start[1], end[0], end[1])

@@ -25,6 +25,7 @@ class Config:
     plot_optimization = True
     """Whether to show an animation of the string selection process during the optimization."""
     name_of_the_run = 'test'
+    performance_mode = False
 
     @property
     def pin_width(self) -> float:
@@ -41,5 +42,11 @@ class Config:
         return int(self.high_res // self.super_sampling_window_width)
 
 
-def get_default_config() -> Config:
-    return Config()
+__config = None
+
+
+def get_config() -> Config:
+    global __config
+    if __config is None:
+        __config = Config()
+    return __config

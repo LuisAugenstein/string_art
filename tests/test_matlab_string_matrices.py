@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.io import loadmat
 from scipy.sparse import find, csr_matrix
-from string_art.config import get_default_config
+from string_art.config import get_config
 from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_indices, high_res_to_low_res_indices_optimized
 from tests.utils import measure_time
 
@@ -10,7 +10,7 @@ def test_with_matlab_string_matrices():
     """
     Check whether the high resolution string matrix is computed equally than in the matlab code.
     """
-    config = get_default_config()
+    config = get_config()
     config.n_pins = 16
     A_high_res, _ = precompute_string_matrix(config.n_pins, config.pin_side_length, config.string_thickness, config.min_angle, config.high_res)
     A_high_res_matlab = loadmat(f'tests/data/A_high_res.mat')['A']

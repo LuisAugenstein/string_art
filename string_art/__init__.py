@@ -1,2 +1,2 @@
-from .config import Config, get_default_config
+from .config import Config, get_config
 from .run import run
