@@ -1,9 +1,8 @@
-from string_art.io import load_string_matrices
-from string_art.config import get_default_config
+import numpy as np
 from scipy.io import loadmat
 from scipy.sparse import find, csr_matrix
-import numpy as np
-from string_art.preprocessing import high_res_to_low_res_indices, high_res_to_low_res_indices_optimized
+from string_art.config import get_default_config
+from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_indices, high_res_to_low_res_indices_optimized
 from tests.utils import measure_time
 
 
@@ -13,10 +12,20 @@ def test_with_matlab_string_matrices():
     """
     config = get_default_config()
     config.n_pins = 16
-    A_high_res, _, _ = load_string_matrices(config.n_pins, config.pin_side_length,
-                                            config.string_thickness, config.min_angle, config.high_res, config.low_res)
+    A_high_res, _ = precompute_string_matrix(config.n_pins, config.pin_side_length, config.string_thickness, config.min_angle, config.high_res)
     A_high_res_matlab = loadmat(f'tests/data/A_high_res.mat')['A']
-    assert sparse_matrices_all_close(A_high_res, A_high_res_matlab, first_n_edges=50)
+
+    def sparse_matrices_all_close(A: csr_matrix, B: csr_matrix, first_n_edges=None) -> bool:
+        if first_n_edges is None:
+            first_n_edges = A.shape[1]
+        for edge_index in range(first_n_edges):
+            i, _, v = find(A[:, edge_index])
+            i2, _, v2 = find(B[:, edge_index])
+            if not np.allclose(i, i2) or not np.allclose(v, v2):
+                return False
+        return True
+
+    assert sparse_matrices_all_close(A_high_res, A_high_res_matlab)
 
 
 def test_string_matrix_resizing():
@@ -31,14 +40,3 @@ def test_string_matrix_resizing():
     sort_indices = np.argsort(i_new)
     assert np.allclose(i_new[sort_indices], i_matlab) and np.allclose(v_new[sort_indices], v_matlab)
     assert np.allclose(i_new2[sort_indices], i_matlab) and np.allclose(v_new2[sort_indices], v_matlab)
-
-
-def sparse_matrices_all_close(A: csr_matrix, B: csr_matrix, first_n_edges=None) -> bool:
-    if first_n_edges is None:
-        first_n_edges = A.shape[1]
-    for edge_index in range(first_n_edges):
-        i, j, v = find(A[:, edge_index])
-        i2, j2, v2 = find(B[:, edge_index])
-        if not np.allclose(i, i2) or not np.allclose(j, j2) or not np.allclose(v, v2):
-            return False
-    return True

@@ -15,11 +15,6 @@ def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickne
     print(f'min_angle={min_angle:.4f} exludes {np.sum(~fabricable)} edges.')
     lines = edges_to_lines_in_positive_domain(pins, edges, high_res)  # [4*n_edges]
     lines -= 1  # account for 0 indexing opposed for 1 indexing in matlab
-
-    # lines = lines[fabricable]
-    # lines = [line for i, j in edges for line in pins[int(i)].get_possible_connections(pins[j])]
-    # lines = [line for line in pins[1].get_possible_connections(pins[9])]
-
     print(f'Compute A_high_res for high_res={high_res}')
     high_res_strings = [filter_string_boundaries(draw_line(line), high_res) for line in tqdm(lines)]
     A_high_res = strings_to_sparse_matrix(high_res_strings, high_res)

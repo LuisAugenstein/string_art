@@ -41,7 +41,7 @@ def xiaolinwu(line: Line) -> String:
     x[1] = xpxl1
     y[1] = ypxl1 + 1
     c[1] = fpart(yend) * xgap
-    intery = yend + gradient  # first y-intersection for the main loop
+    intery = yend + 1 + gradient  # first y-intersection for the main loop
 
     # Handle second endpoint
     xend = round(x2)
@@ -60,11 +60,11 @@ def xiaolinwu(line: Line) -> String:
     k = 4
     for i in range(xpxl1 + 1, xpxl2):
         x[k] = i
-        y[k] = int(intery)
+        y[k] = ipart(intery)-1
         c[k] = rfpart(intery)
         k += 1
         x[k] = i
-        y[k] = int(intery) + 1
+        y[k] = ipart(intery)
         c[k] = fpart(intery)
         intery = intery + gradient
         k += 1

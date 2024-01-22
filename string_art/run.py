@@ -7,7 +7,7 @@ from string_art.preprocessing import create_circular_mask, preprocess_image
 from string_art.optimization import LoggingCallback, PlottingCallback
 
 
-def run(config: Config):
+def run(img: np.ndarray, config: Config):
     img = preprocess_image(img, config.low_res, config.invert_input)
     mask = create_circular_mask(config.low_res)
 

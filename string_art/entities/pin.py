@@ -56,15 +56,15 @@ class Pin:
         a_points, b_points = self.corner_points, pinB.corner_points
 
         for i, b_point in enumerate(b_points):
-            diffs = (a_points - b_point[None, :])
-            distances = np.linalg.norm(diffs, axis=1)
-            angles = np.arctan2(diffs[:, 1], diffs[:, 0])
+            distances = np.linalg.norm((a_points - b_point[None, :]), axis=1)
+            angles = self.__get_normalized_angles(b_point)
+            thresh = 1e-8
 
-            i_max_angles = np.where(angles == np.max(angles))[0]
+            i_max_angles = np.where(np.abs(angles - np.max(angles)) < thresh)[0]
             i_max_angle = i_max_angles[np.argmin(distances[i_max_angles])]
             lineAB = np.vstack([a_points[i_max_angle], b_point])
 
-            i_min_angles = np.where(angles == np.min(angles))[0]
+            i_min_angles = np.where(np.abs(angles - np.min(angles)) < thresh)[0]
             i_min_angle = i_min_angles[np.argmin(distances[i_min_angles])]
             lineBA = np.vstack([b_point, a_points[i_min_angle]])
 
@@ -89,19 +89,17 @@ class Pin:
                         best_lengths[2+j] = length
         return lines
 
-    def intersects_string(self, line: Line, threshold=1e-8) -> bool:
+    def __get_normalized_angles(self, base_point: np.ndarray) -> np.ndarray:
         """
-        Parameters
-        -
-        p1: np.shape[2] array of the first point of the string segment
-        p2: np.shape[2] array of the second point of the string segment
+        Computes the relative angles from the given base_point to the corners of the pin.
 
         Returns
         -
-        True if the string segment intersects the pin, False otherwise
+        angles: [0, a1, a2, a3]   angles in radians. first angle is always 0. The remaining 3 angles are relative to the first angle.
         """
-        distances = distance(line, self.corner_points)
-        return np.any(distances <= threshold)
-
-    def angle_to_x_axis(self, v: np.ndarray) -> float:
-        return -np.arctan2(v[1], v[0])
+        diffs = base_point[:, None] - self.corner_points.T  # (2,4)
+        first_angle = np.arctan2(diffs[1, 0], diffs[0, 0])
+        rot_mat_inverse = np.array([[np.cos(first_angle), -np.sin(first_angle)],
+                                    [np.sin(first_angle), np.cos(first_angle)]]).T
+        diff_rot = rot_mat_inverse @ diffs
+        return np.arctan2(diff_rot[1, :], diff_rot[0, :])

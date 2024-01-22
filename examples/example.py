@@ -5,4 +5,4 @@ import string_art
 img = imageio.imread('data/inputs/cat.png')
 config = get_default_config()
 config.n_pins = 16
-string_art.run(config)
+string_art.run(img, config)
