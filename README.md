@@ -22,11 +22,11 @@ The String art images are created by pulling a string around pins to approximate
 - `Pins` are numerated nodes that are positioned in a circle around the image. They are uniquely identified by their indices, forming an ordered list like `pins = [0, 1, 2, 3, ..., n_pins-1]`.
 
 - `Edges` are abstract connections between two pins. An edge between a pin `i` and `j` is defined as the tuple `(i,j)`. Since every pin can be connected to every other pin we can numerate all pins and edges as follows:
-```python
-pins = list(range(n_pins))
-edges=[(i, j) for i in pins for j in pins[i+1:]]
-```
-In total there are `n_edges = n_choose_k(n_pins, 2)` edges. Based on the enumeration we can also refer to edges by their indices in the `edges` list, e.g., the edge at index $4$ is $e_4=(0,5)$.
+    ```python
+    pins = list(range(n_pins))
+    edges=[(i, j) for i in pins for j in pins[i+1:]]
+    ```
+    In total there are `n_edges = n_choose_k(n_pins, 2)` edges. Based on the enumeration we can also refer to edges by their indices in the `edges` list, e.g., the edge at index $4$ is $e_4=(0,5)$.
 
 <div align='center'>  
   <img src="docs/pin_and_edge_visualization.svg" width="350" height="350">  <img src="docs/connection_types.svg" width="350" height="350">
