@@ -16,18 +16,88 @@ echo 'export PYTHONPATH=/path/to/string_art' >> ~miniconda3/envs/string_art/etc/
 # Entities
 The String art images are created by pulling a string around pins to approximate a target image as close as possible. To better understand the concepts and the accompanying code, this section introduces three key terms: `Pin`, `Edge`, and `String`:
 
-`Pins` are numerated nodes that are positioned in a circle around the image. They are uniquely identified by their indices, forming an ordered list like `pins = [0, 1, 2, 3, ..., n_pins-1]`.
+- `Pins` are numerated nodes that are positioned in a circle around the image. They are uniquely identified by their indices, forming an ordered list like `pins = [0, 1, 2, 3, ..., n_pins-1]`.
 
-An `Edge` is a connection between two pins representing a straight line. In general graph networks, there is usually only one edge between two node. In our case however, we have to think about four different lines connecting the pins. This is because real pins have a width. To connect two pins we can either pull the string around the outside or diagonally and therefore get four possible `Connection Types`, namely `Straight In: 0, Straight Out: 1, Diagonal In: 2, Diagonal Out: 3`.
+- `Edges` are abstract connections between two pins. An edge between a pin `i` and `j` is defined as the tuple `(i,j)`. Since every pin can be connected to every other pin we can numerate all pins and edges as follows:
 ```python
 pins = list(range(n_pins))
-edges=np.repeat([(i, j) for i in pins for j in pins[i+1:]], 4, axis=0)
+edges=[(i, j) for i in pins for j in pins[i+1:]]
 ```
+In total there are `n_edges = n_choose_k(n_pins, 2)` edges. Based on the enumeration we can also refer to edges by their indices in the `edges` list, e.g., the edge at index $4$ is $e_4=(0,5)$.
 
 <div align='center'>  
   <img src="docs/pin_and_edge_visualization.svg" width="350" height="350">  <img src="docs/connection_types.svg" width="350" height="350">
 </div>
 
-Note, that instead of representing an edge by its start and end pin indices $(p_i, p_j)$ we can also just define and edge by its index $e_k$. Also note, that the connection types $3$ and $4$ can be always associated to one specific edge. To assign connection types $1$ and $2$ we need to know whether the edge is ingoing or outgoing. For `n_pins` pins there are `n_edges = 4*n_choose_k(n_pins, 2)` possible edges that can be drawn. 
+- `Strings` represent the pixels $(x,y)$ and grayscale values $v$ of actual straight lines that connect two pins. Since real pins have a width there are 4 different connection types to connect two pins, namely: `Straight In: 0, Straight Out: 1, Diagonal In: 2, Diagonal Out: 3`. Note, that the connection types $3$ and $4$ can always be associated to one specific line. To assign connection types $1$ and $2$ we need to know whether the edge is ingoing or outgoing. For `n_pins` pins there are `n_strings = 4*n_edges` possible strings that can be drawn. 
 
-`Strings` are obtained by actually drawing an edge onto an image. A `String` is a list of pixels each with its own coordinates $(x,y)$ and a grayscale value $v$.
+
+# Exactly Reproduce Results from original Matlab Code
+Running the examples/reproduce_matlab_results.py file starts a small 16 pin run with the 'cat.png' image. To see the exact same results in the original matlab code a few changes have to be made:
+
+1. remove the randomness in the `pinPositions.m` file, i.e., replace
+```matlab
+function [pinPos, angles] = pinPositions(numPins)
+    
+    if nargin == 0
+        numPins = 512;
+    end
+    
+    maxAngle = 2 * pi /numPins;
+    minAngle = 0.95 * 2 * pi /numPins;
+    range = maxAngle - minAngle;
+    
+    rng(0);
+    
+    % Accumulative Method
+    angles = range * rand(numPins + 1, 1) + minAngle;
+    angles = cumsum(angles);
+    firstHookAngle = 2 * pi + angles(1);
+    angles = angles .* (firstHookAngle / angles(end));
+    angles = angles(1 : end - 1);
+    
+    pinPos = [cos(angles) sin(angles)];
+end
+
+```
+with
+```matlab
+
+function [pinPos, angles] = pinPositions(numPins)
+    
+    if nargin == 0
+        numPins = 512;
+    end
+    
+    pin_angles = linspace(0, 2*pi, numPins+1);
+    angles = pin_angles(1:numPins);
+    pinPos = [cos(angles); sin(angles)]';
+end
+
+```
+
+2. In line 59 of `Hook.m` the convex hull computation is not consistent when the pins lie directly opposite to each other. replace only in those cases the `convhull` call with a `boundary` call: 
+```matlab
+...
+for i = 1 : 4
+    bPoint = bPoints(:, i);
+    K = convhull([aPoints(1, :) bPoint(1)], [aPoints(2, :) bPoint(2)]);
+    % this is new
+    if all(abs(aPoints(:) + bPoints(:)) < 1.0e-8)
+        K = boundary([aPoints(1, :) bPoint(1)]', [aPoints(2, :) bPoint(2)]');
+    end
+    % new code end
+...
+```
+
+3. Optional: Fix the `computeValidEdgesMask` function in the `GreedyMultiSamplingDataObjectL2.m` file from
+```matlab
+obj.validEdgesMask(edgeAngles <= minAngle) = false;
+```
+to
+```matlab
+obj.validEdgesMask(edgeAngles - minAngle <= 1e-8) = false;
+```
+to accurately exclude the edges between pins that are closer than minAngle.
+
+4. Set the number of pins in `example_cat.png` to `numPins=16`
