@@ -1,12 +1,12 @@
 import os
-from scipy.sparse import load_npz, save_npz, csr_matrix
+from scipy.sparse import load_npz, save_npz, csc_matrix
 from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_matrix
 from string_art.io.root_path import root_path
 from string_art.io.mkdir import mkdir
 import numpy as np
 
 
-def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: float, min_angle: float, high_res: int, low_res: float) -> tuple[csr_matrix, csr_matrix, np.ndarray]:
+def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: float, min_angle: float, high_res: int, low_res: float) -> tuple[csc_matrix, csc_matrix, np.ndarray]:
     """
     Returns
     -

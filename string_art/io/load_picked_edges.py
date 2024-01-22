@@ -1,11 +1,11 @@
 import os
 import numpy as np
-from scipy.sparse import csr_matrix
+from scipy.sparse import csc_matrix
 from string_art.optimization import IterativeGreedyOptimizer, OptimizedLoss, SimpleLoss, OptimizationCallback
 from string_art.io.root_path import get_project_dir
 
 
-def load_picked_edges(name_of_the_run: str, image: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, valid_edges_mask: np.ndarray, callbacks: list[OptimizationCallback]) -> np.ndarray:
+def load_picked_edges(name_of_the_run: str, image: np.ndarray, importance_map: np.ndarray, A_high_res: csc_matrix, A_low_res: csc_matrix, valid_edges_mask: np.ndarray, callbacks: list[OptimizationCallback]) -> np.ndarray:
     project_dir = get_project_dir(name_of_the_run)
     x_path = f'{project_dir}/x.npy'
     if name_of_the_run != 'test' and os.path.exists(x_path):

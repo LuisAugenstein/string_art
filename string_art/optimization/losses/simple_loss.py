@@ -1,11 +1,11 @@
 import numpy as np
 from typing import Literal
-from scipy.sparse import csr_matrix
+from scipy.sparse import csc_matrix
 from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
 
 
 class SimpleLoss:
-    def __init__(self, img: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, low_res: int) -> None:
+    def __init__(self, img: np.ndarray, importance_map: np.ndarray, A_high_res: csc_matrix, low_res: int) -> None:
         self.b_native_res = img.flatten()
         self.importance_map = importance_map.flatten()
         self.A_high_res = A_high_res

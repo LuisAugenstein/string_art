@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.io import loadmat
-from scipy.sparse import find, csr_matrix
+from scipy.sparse import find, csc_matrix
 from string_art.config import get_config
 from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_indices, high_res_to_low_res_indices_optimized
 from tests.utils import measure_time
@@ -15,7 +15,7 @@ def test_with_matlab_string_matrices():
     A_high_res, _ = precompute_string_matrix(config.n_pins, config.pin_side_length, config.string_thickness, config.min_angle, config.high_res)
     A_high_res_matlab = loadmat(f'tests/data/A_high_res.mat')['A']
 
-    def sparse_matrices_all_close(A: csr_matrix, B: csr_matrix) -> bool:
+    def sparse_matrices_all_close(A: csc_matrix, B: csc_matrix) -> bool:
         for edge_index in range(A.shape[1]):
             i, _, v = find(A[:, edge_index])
             i2, _, v2 = find(B[:, edge_index])

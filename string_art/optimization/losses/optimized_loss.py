@@ -1,12 +1,12 @@
 import numpy as np
 from typing import Literal
-from scipy.sparse import find, csr_matrix
+from scipy.sparse import find, csc_matrix
 from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
 from string_art.transformations import indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 
 
 class OptimizedLoss:
-    def __init__(self, image: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix) -> None:
+    def __init__(self, image: np.ndarray, importance_map: np.ndarray, A_high_res: csc_matrix, A_low_res: csc_matrix) -> None:
         self.b_native_res = image.flatten()
         self.importance_map = importance_map.flatten()
         self.A_high_res = A_high_res
@@ -42,7 +42,7 @@ class OptimizedLoss:
             self.__x[edge_index] = x[edge_index]
         return self.f_adding if mode == 'add' else self.f_removing
 
-    def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csr_matrix, diff_to_blank_squared_error_sum: float, n_strings: int) -> tuple[np.ndarray, np.ndarray]:
+    def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csc_matrix, diff_to_blank_squared_error_sum: float, n_strings: int) -> tuple[np.ndarray, np.ndarray]:
         low_res_corresp_edge_indices, low_res_edge_pixel_indices, low_res_edge_pixel_values = low_res_row_col_values
         w = importance_map[low_res_edge_pixel_indices]
         b = b_native_res[low_res_edge_pixel_indices]
@@ -200,7 +200,7 @@ class OptimizedLoss:
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
 
-    def __get_index_to_index_map(self, A: csr_matrix) -> csr_matrix:
+    def __get_index_to_index_map(self, A: csc_matrix) -> csc_matrix:
         """
         Parameters
         -
@@ -210,8 +210,8 @@ class OptimizedLoss:
         -
         index_to_index_map: np.shape([n_values_in_A, n_pixels]) binary matrix which contains a single 1 in each row (i,edge_pixel_indices[i]) and otherwise 0. 
         """
-        _, edge_pixel_indices, _ = find(A.T)
-        n_values_in_A = edge_pixel_indices.shape[0]
+        n_values_in_A = A.indices.shape[0]
         data = np.ones(n_values_in_A)
-        index_to_index_map = csr_matrix((data, (np.arange(n_values_in_A), edge_pixel_indices)), shape=(n_values_in_A, A.shape[0]))
+        rows = np.arange(n_values_in_A)
+        index_to_index_map = csc_matrix((data, (rows, A.indices)), shape=(n_values_in_A, A.shape[0]))
         return index_to_index_map

@@ -1,10 +1,10 @@
 import numpy as np
 from string_art.entities import String
-from scipy.sparse import csr_matrix, find
+from scipy.sparse import csc_matrix
 from string_art.transformations.index_transformation import indices_1D_to_2D, indices_2D_to_1D
 
 
-def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csr_matrix:
+def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csc_matrix:
     """
     Returns
     -
@@ -16,18 +16,18 @@ def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csr_matr
         x, y, v = string
         i = indices_2D_to_1D(x, y, resolution)
         rows.append(i)
-        cols.append([j]*v.shape[0])
+        cols.append(np.ones_like(v)*j)
         values.append(v)
     rows, cols, values = [np.concatenate(l) for l in [rows, cols, values]]
-    return csr_matrix((values, (rows, cols)), shape=(n_pixels, n_strings))
+    return csc_matrix((values, (rows, cols)), shape=(n_pixels, n_strings))
 
 
-def sparse_matrix_to_strings(A: csr_matrix) -> list[String]:
+def sparse_matrix_to_strings(A: csc_matrix) -> list[String]:
     n_pixels, n_strings = A.shape
     resolution = int(np.sqrt(n_pixels))
     strings = []
     for j in range(n_strings):
-        i, _, v = find(A[:, j])
+        i, v = A[:, j].indices, A[:, j].data
         x, y = indices_1D_to_2D(i, resolution).T
         strings.append((x, y, v))
     return strings

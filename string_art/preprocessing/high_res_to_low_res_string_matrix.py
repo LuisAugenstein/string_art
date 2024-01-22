@@ -1,11 +1,11 @@
 import numpy as np
-from scipy.sparse import find, csr_matrix
+from scipy.sparse import find, csc_matrix
 from tqdm import tqdm
 from string_art.transformations import indices_1D_to_2D
 from typing import Callable
 
 
-def high_res_to_low_res_matrix(A_high_res: csr_matrix, low_res: int) -> csr_matrix:
+def high_res_to_low_res_matrix(A_high_res: csc_matrix, low_res: int) -> csc_matrix:
     def col_mapping(i, _, v): return high_res_to_low_res_indices_optimized(i, v, A_high_res.shape[0], low_res)
 
     print(f'Compute A_low_res for low_res={low_res}')
@@ -42,7 +42,7 @@ def high_res_to_low_res_indices_optimized(high_res_indices: np.ndarray, high_res
     return i, v
 
 
-def sparse_matrix_col_map(f: Callable[[np.ndarray, int, np.ndarray], tuple[np.ndarray, np.ndarray]], A: csr_matrix, n_output_rows: int, use_tqdm: bool = False) -> csr_matrix:
+def sparse_matrix_col_map(f: Callable[[np.ndarray, int, np.ndarray], tuple[np.ndarray, np.ndarray]], A: csc_matrix, n_output_rows: int, use_tqdm: bool = False) -> csc_matrix:
     """
     Applies a function f to each column of a sparse matrix A and returns the new sparse matrix.
 
@@ -53,10 +53,10 @@ def sparse_matrix_col_map(f: Callable[[np.ndarray, int, np.ndarray], tuple[np.nd
     rows, cols, values = [], [], []
     iter = tqdm(range(n_cols)) if use_tqdm else range(n_cols)
     for col_index in iter:
-        i, _, v = find(A[:, col_index])
+        i, v = A[:, col_index].indices, A[:, col_index].data
         new_i, new_v = f(i, col_index, v)
         rows.append(new_i)
         cols.append(np.ones_like(new_i)*col_index)
         values.append(new_v)
     rows, cols, values = [np.concatenate(l) for l in [rows, cols, values]]
-    return csr_matrix((values, (rows, cols)), shape=(n_output_rows, n_cols))
+    return csc_matrix((values, (rows, cols)), shape=(n_output_rows, n_cols))
