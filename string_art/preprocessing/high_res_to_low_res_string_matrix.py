@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.sparse import find, csc_matrix
 from string_art.transformations import indices_1D_to_2D
-from tqdm import tqdm
-from string_art.utils import parallel_map
+from string_art.utils import map
 
 
 def high_res_to_low_res_matrix(A_high_res: csc_matrix, low_res: int) -> csc_matrix:
@@ -16,8 +15,7 @@ def high_res_to_low_res_matrix(A_high_res: csc_matrix, low_res: int) -> csc_matr
     print(f'Compute A_low_res for low_res={low_res}')
     n_strings = A_high_res.shape[1]
     col_data = [(A_high_res[:, j].indices, A_high_res[:, j].data) for j in range(A_high_res.shape[1])]
-    # output_col_data = [col_mapping(col) for col in tqdm(col_data)]
-    output_col_data = parallel_map(col_mapping, col_data, cpu_count=4)
+    output_col_data = map(col_mapping, col_data)
 
     rows, cols, values = [], [], []
     for j, (i, v) in enumerate(output_col_data):
