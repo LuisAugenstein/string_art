@@ -13,6 +13,9 @@ mkdir -p ~/miniconda3/envs/string_art/etc/conda/activate.d
 echo 'export PYTHONPATH=/path/to/string_art' >> ~miniconda3/envs/string_art/etc/conda/activate.d/env_vars.sh
 ```
 
+# Get Started
+The `examples/` directory contains executable scripts to get familiar with the usage of this library. Try the `examples/reproduce_matlab_results.py` to run a small 16 pin example. You can also run the original matlab [code](https://github.com/Exception1984/StringArt) with the instructions given [below](#exactly-reproduce-results-from-original-matlab-code) to compare the results.
+
 # Entities
 The String art images are created by pulling a string around pins to approximate a target image as close as possible. To better understand the concepts and the accompanying code, this section introduces three key terms: `Pin`, `Edge`, and `String`:
 

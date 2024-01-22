@@ -42,7 +42,7 @@ def get_fabricability_mask(edges: np.ndarray, n_pins: int, min_angle: float, thr
     -
     fabricable: np.shape([4*n_edges]) boolean mask indicating which strings are fabricable
     """
-    fabricable = np.ones(edges.shape[0]//4, dtype=bool)
+    fabricable = np.ones(edges.shape[0], dtype=bool)
     pin_positions, _ = circular_pin_positions(n_pins, radius=1)  # [n_pins, 2]
     p1, p2 = pin_positions[edges[:, 0]], pin_positions[edges[:, 1]]  # [n_edges, 2], [n_edges, 2]
     dot_p = np.sum(p1*p2, axis=1)  # [n_edges]
