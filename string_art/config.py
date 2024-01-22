@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from math import pi, comb
+from math import pi
 
 
 @dataclass
@@ -9,6 +9,7 @@ class Config:
     invert_output = True
     """false -> white string, true -> black string"""
     n_pins = 256
+    """number of pins for the image reconstruction. assumed to be power of 2."""
     string_thickness = 0.15
     """physical thickness of the thread in mm"""
     frame_diameter = 614.4

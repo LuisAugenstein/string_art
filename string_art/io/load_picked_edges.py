@@ -8,7 +8,7 @@ from string_art.io.root_path import get_project_dir
 def load_picked_edges(name_of_the_run: str, image: np.ndarray, importance_map: np.ndarray, A_high_res: csr_matrix, A_low_res: csr_matrix, valid_edges_mask: np.ndarray, callbacks: list[OptimizationCallback]) -> np.ndarray:
     project_dir = get_project_dir(name_of_the_run)
     x_path = f'{project_dir}/x.npy'
-    if os.path.exists(x_path):
+    if name_of_the_run != 'test' and os.path.exists(x_path):
         return np.load(x_path)
 
     # The SimpleLoss produces the same results as the OptimizedLoss, but is much slower.
