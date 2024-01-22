@@ -1,5 +1,15 @@
 import numpy as np
 from string_art.entities import Line, String
+from skimage import draw
+
+
+def draw_line(line: Line) -> String:
+    performance_mode = False
+    if performance_mode:
+        start, end = line
+        x, y = draw.line(start[0], start[1], end[0], end[1])
+        return x, y, np.ones_like(x)
+    return xiaolinwu(line)
 
 
 def xiaolinwu(line: Line) -> String:
@@ -11,7 +21,7 @@ def xiaolinwu(line: Line) -> String:
     dy = y2 - y1
 
     # Preallocate memory for x, y, and c
-    length = int(2.1 * np.sqrt(dx**2 + dy**2))
+    length = int(2.2 * np.sqrt(dx**2 + dy**2))
     x = np.zeros(length)
     y = np.zeros(length)
     c = np.zeros(length)

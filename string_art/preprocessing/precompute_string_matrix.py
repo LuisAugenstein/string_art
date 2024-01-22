@@ -1,6 +1,7 @@
 import numpy as np
 from string_art.entities import String, Pin, Lines, get_pins, circular_pin_positions
-from string_art.transformations import strings_to_sparse_matrix, draw_line
+from string_art.transformations import strings_to_sparse_matrix
+from string_art.preprocessing.draw_line import draw_line
 from itertools import combinations
 from tqdm import tqdm
 from scipy.sparse import csr_matrix
@@ -13,6 +14,7 @@ def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickne
     print(f'n_pins={n_pins}, n_edges={edges.shape[0]}, n_strings={4*edges.shape[0]}')
     fabricable = get_fabricability_mask(edges, n_pins, min_angle)  # [n_strings]
     print(f'min_angle={min_angle:.4f} exludes {np.sum(~fabricable)} strings.')
+    print(f'Compute lines in positive domain')
     lines = edges_to_lines_in_positive_domain(pins, edges, high_res)  # [n_strings]
     lines -= 1  # account for 0 indexing opposed for 1 indexing in matlab
     print(f'Compute A_high_res for high_res={high_res}')
@@ -52,7 +54,7 @@ def get_fabricability_mask(edges: np.ndarray, n_pins: int, min_angle: float, thr
 
 
 def edges_to_lines_in_positive_domain(pins: list[Pin], edges: np.ndarray, high_res: int) -> Lines:
-    return np.array([np.round(line + (high_res+1)/2).astype(np.int32) for i, j in edges for line in pins[int(i)].get_possible_connections(pins[j])])
+    return np.array([np.round(line + (high_res+1)/2).astype(np.int32) for i, j in tqdm(edges) for line in pins[int(i)].get_possible_connections(pins[j])])
 
 
 def filter_string_boundaries(string: String, high_res) -> String:

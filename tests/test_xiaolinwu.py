@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.io import loadmat
-from string_art.transformations import xiaolinwu
+from string_art.preprocessing import xiaolinwu
 
 
 def test_xiaolinwu():
@@ -9,6 +9,3 @@ def test_xiaolinwu():
     string = np.array(string).T
     matlab_string = loadmat('tests/data/xiaolinwu_test_string.mat')['A']
     assert np.allclose(string, matlab_string)
-
-
-test_xiaolinwu()
