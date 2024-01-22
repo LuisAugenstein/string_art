@@ -16,15 +16,21 @@ def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: 
     """
     string_matrices_dir = f"{root_path}/data/string_matrices"
     config_dir = f'{string_matrices_dir}/{n_pins}_{pin_side_length}_{string_thickness}_{min_angle:.4f}_{high_res}_{low_res}'
-    matrix_paths = [f'{config_dir}/A_high_res.npz', f'{config_dir}/A_low_res.npz', f'{config_dir}/valid_edges_mask.npy']
-    if os.path.exists(config_dir) and all([os.path.exists(path) for path in matrix_paths]):
-        A_high_res, A_low_res = [load_npz(path) for path in matrix_paths[:2]]
-        valid_edges_mask = np.load(matrix_paths[2])
+
+    high_res_path, valid_edges_mask_path = f'{config_dir}/A_high_res.npz', f'{config_dir}/valid_edges_mask.npy'
+    if os.path.exists(high_res_path) and os.path.exists:
+        A_high_res, valid_edges_mask = load_npz(high_res_path), np.load(valid_edges_mask_path)
     else:
         A_high_res, valid_edges_mask = precompute_string_matrix(n_pins, pin_side_length, string_thickness, min_angle, high_res)
-        A_low_res = high_res_to_low_res_matrix(A_high_res, low_res)
         mkdir(config_dir)
-        save_npz(matrix_paths[0], A_high_res)
-        save_npz(matrix_paths[1], A_low_res)
-        np.save(matrix_paths[2], valid_edges_mask)
+        save_npz(high_res_path, A_high_res)
+        np.save(valid_edges_mask_path, valid_edges_mask)
+
+    low_res_path = f'{config_dir}/A_low_res.npz'
+    if os.path.exists(low_res_path):
+        A_low_res = load_npz(low_res_path)
+    else:
+        A_low_res = high_res_to_low_res_matrix(A_high_res, low_res)
+        save_npz(low_res_path, A_low_res)
+
     return A_high_res, A_low_res, valid_edges_mask
