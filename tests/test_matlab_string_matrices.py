@@ -15,10 +15,8 @@ def test_with_matlab_string_matrices():
     A_high_res, _ = precompute_string_matrix(config.n_pins, config.pin_side_length, config.string_thickness, config.min_angle, config.high_res)
     A_high_res_matlab = loadmat(f'tests/data/A_high_res.mat')['A']
 
-    def sparse_matrices_all_close(A: csr_matrix, B: csr_matrix, first_n_edges=None) -> bool:
-        if first_n_edges is None:
-            first_n_edges = A.shape[1]
-        for edge_index in range(first_n_edges):
+    def sparse_matrices_all_close(A: csr_matrix, B: csr_matrix) -> bool:
+        for edge_index in range(A.shape[1]):
             i, _, v = find(A[:, edge_index])
             i2, _, v2 = find(B[:, edge_index])
             if not np.allclose(i, i2) or not np.allclose(v, v2):

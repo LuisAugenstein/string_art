@@ -17,10 +17,10 @@ class OptimizedLoss:
         self.high_res_index_to_index_map = self.__get_index_to_index_map(A_high_res)
         self.low_res_index_to_index_map = self.__get_index_to_index_map(A_low_res)
 
-        self.n_edges = A_high_res.shape[1]
+        self.n_strings = A_high_res.shape[1]
         self.low_res, self.high_res = int(np.sqrt(A_low_res.shape[0])), int(np.sqrt(A_high_res.shape[0]))
         self.correspondence_map = multi_sample_correspondence_map(self.low_res, self.high_res)
-        self.__x = np.zeros(self.n_edges)
+        self.__x = np.zeros(self.n_strings)
 
         self.current_recon = np.zeros(A_high_res.shape[0])
         self.current_recon_unclamped = np.zeros(A_high_res.shape[0])
@@ -33,7 +33,7 @@ class OptimizedLoss:
         self.diff_to_blank_squared_error_sum = np.sum(self.diff_to_blank_squared_errors)
         self.rmse_value = np.sqrt(self.diff_to_blank_squared_error_sum / self.b_native_res.size)
         self.f_adding, self.f_removing = self.__init_f_scores(self.importance_map, self.b_native_res, self.low_res_col_row_values,
-                                                              self.diff_to_blank_squared_error_sum, self.n_edges)
+                                                              self.diff_to_blank_squared_error_sum, self.n_strings)
 
     def get_f_scores(self, x: np.ndarray, mode: Literal['add', 'remove'] = 'add') -> tuple[np.ndarray, np.ndarray]:
         for edge_index in np.where(x != self.__x)[0]:
@@ -42,15 +42,15 @@ class OptimizedLoss:
             self.__x[edge_index] = x[edge_index]
         return self.f_adding if mode == 'add' else self.f_removing
 
-    def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csr_matrix, diff_to_blank_squared_error_sum: float, n_edges: int) -> tuple[np.ndarray, np.ndarray]:
+    def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csr_matrix, diff_to_blank_squared_error_sum: float, n_strings: int) -> tuple[np.ndarray, np.ndarray]:
         low_res_corresp_edge_indices, low_res_edge_pixel_indices, low_res_edge_pixel_values = low_res_row_col_values
         w = importance_map[low_res_edge_pixel_indices]
         b = b_native_res[low_res_edge_pixel_indices]
         a = low_res_edge_pixel_values
         j = low_res_corresp_edge_indices
 
-        sum_of_squared_errors_per_edge_adding = np.bincount(j, weights=(w*(b - a))**2, minlength=n_edges)
-        sum_of_squared_errors_per_edge_removing = np.bincount(j, weights=(w*(b + a))**2, minlength=n_edges)
+        sum_of_squared_errors_per_edge_adding = np.bincount(j, weights=(w*(b - a))**2, minlength=n_strings)
+        sum_of_squared_errors_per_edge_removing = np.bincount(j, weights=(w*(b + a))**2, minlength=n_strings)
         diff_to_blank_sum_per_edge = np.bincount(j, weights=(w*b)**2)
 
         f_adding = diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_adding
@@ -104,8 +104,8 @@ class OptimizedLoss:
         pre_at_indices = pre_update_errors[re_indices]
         post_at_indices = post_update_errors[re_indices]
 
-        pre_corr = np.bincount(sec_corr_edge_ind, weights=pre_at_indices, minlength=self.n_edges)
-        post_corr = np.bincount(sec_corr_edge_ind, weights=post_at_indices, minlength=self.n_edges)
+        pre_corr = np.bincount(sec_corr_edge_ind, weights=pre_at_indices, minlength=self.n_strings)
+        post_corr = np.bincount(sec_corr_edge_ind, weights=post_at_indices, minlength=self.n_strings)
 
         # Fix intersection errors
         self.f_adding -= post_corr - pre_corr
@@ -152,7 +152,7 @@ class OptimizedLoss:
                                                                   (pre_update_low_res_recon[filtered_re_indices] -
                                                                    filtered_pre_update_high_res_val +
                                                                    filtered_pre_update_high_res_val_plus_edges))**2),
-                                                         minlength=self.n_edges)
+                                                         minlength=self.n_strings)
 
         failure_pre_update_per_edge_removing = np.bincount(filtered_corr_edge_ind,
                                                            weights=(self.importance_map[filtered_pix_ind] *
@@ -160,7 +160,7 @@ class OptimizedLoss:
                                                                      (pre_update_low_res_recon[filtered_re_indices] -
                                                                       filtered_pre_update_high_res_val +
                                                                       filtered_pre_update_high_res_val_minus_edges))**2),
-                                                           minlength=self.n_edges)
+                                                           minlength=self.n_strings)
 
         # POST UPDATE
         post_update_high_res_recon = self.current_recon[high_res_indices]
@@ -187,7 +187,7 @@ class OptimizedLoss:
                                                                     (post_update_low_res_recon[filtered_re_indices] -
                                                                      filtered_post_update_high_res_val +
                                                                      filtered_post_update_high_res_val_plus_edges))**2),
-                                                          minlength=self.n_edges)
+                                                          minlength=self.n_strings)
 
         failure_post_update_per_edge_removing = np.bincount(filtered_corr_edge_ind,
                                                             weights=(self.importance_map[filtered_pix_ind] *
@@ -195,7 +195,7 @@ class OptimizedLoss:
                                                                      (post_update_low_res_recon[filtered_re_indices] -
                                                                       filtered_post_update_high_res_val +
                                                                       filtered_post_update_high_res_val_minus_edges))**2),
-                                                            minlength=self.n_edges)
+                                                            minlength=self.n_strings)
 
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
@@ -204,7 +204,7 @@ class OptimizedLoss:
         """
         Parameters
         -
-        A: np.shape([n_pixels, n_edges])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
+        A: np.shape([n_pixels, n_strings])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
 
         Returns
         -

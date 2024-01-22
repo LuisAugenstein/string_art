@@ -27,7 +27,7 @@ importance_map[~mask] = 0
 fig, axs = plt.subplots(1, 2, figsize=(12, 7))
 axs[0].imshow(img)
 plt.show(block=False)
-callbacks = [LoggingCallback(config.n_edges)]
+callbacks = [LoggingCallback(n_edges=A_high_res.shape[1])]
 if config.plot_optimization:
     callbacks.append(PlottingCallback(axs[1], config.n_pins, config.high_res, config.pin_side_length, config.string_thickness))
 x = load_picked_edges(config.name_of_the_run, img, importance_map, A_high_res, A_low_res, valid_edges_mask, callbacks)

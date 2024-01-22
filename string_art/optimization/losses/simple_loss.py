@@ -12,9 +12,9 @@ class SimpleLoss:
         self.low_res = low_res
 
     def get_f_scores(self, x: np.ndarray, mode: Literal['add', 'remove'] = 'add') -> np.ndarray:
-        high_res, n_edges = np.sqrt(self.A_high_res.shape[0]).astype(int), self.A_high_res.shape[1]
+        high_res, n_strings = np.sqrt(self.A_high_res.shape[0]).astype(int), self.A_high_res.shape[1]
         B = multi_sample_correspondence_map(self.low_res, high_res)
-        f_scores = np.ones(n_edges) * np.inf
+        f_scores = np.ones(n_strings) * np.inf
         candidate_edges = np.where(x == 0)[0] if mode == 'add' else np.where(x == 1)[0]
         for k in candidate_edges:
             x_current = x.copy()

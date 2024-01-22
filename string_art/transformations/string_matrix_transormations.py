@@ -8,9 +8,9 @@ def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csr_matr
     """
     Returns
     -
-    A: np.shape([n_pixels, n_edges])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
+    A: np.shape([n_pixels, n_strings])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
     """
-    n_pixels, n_edges = resolution**2, len(strings)
+    n_pixels, n_strings = resolution**2, len(strings)
     rows, cols, values = [], [], []
     for j, string in enumerate(strings):
         x, y, v = string
@@ -19,14 +19,14 @@ def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csr_matr
         cols.append([j]*v.shape[0])
         values.append(v)
     rows, cols, values = [np.concatenate(l) for l in [rows, cols, values]]
-    return csr_matrix((values, (rows, cols)), shape=(n_pixels, n_edges))
+    return csr_matrix((values, (rows, cols)), shape=(n_pixels, n_strings))
 
 
 def sparse_matrix_to_strings(A: csr_matrix) -> list[String]:
-    n_pixels, n_edges = A.shape
+    n_pixels, n_strings = A.shape
     resolution = int(np.sqrt(n_pixels))
     strings = []
-    for j in range(n_edges):
+    for j in range(n_strings):
         i, _, v = find(A[:, j])
         x, y = indices_1D_to_2D(i, resolution).T
         strings.append((x, y, v))

@@ -7,7 +7,7 @@ from string_art.optimization.callbacks import OptimizationCallback, LoggingCallb
 class IterativeGreedyOptimizer:
     def __init__(self, loss: Loss, valid_edges_mask: np.ndarray) -> None:
         """
-        valid_edges_mask: np.shape([n_edges], dtype=bool)        False for excluding edges from the optimization.
+        valid_edges_mask: np.shape([n_strings], dtype=bool)        False for excluding edges from the optimization.
         """
         self.loss = loss
         self.valid_edges_mask = valid_edges_mask

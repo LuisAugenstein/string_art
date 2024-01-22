@@ -10,9 +10,9 @@ def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: 
     """
     Returns
     -
-    A_high_res: np.shape([high_res**2, n_edges], dtype=int)  binary matrix where 1 at (i,j) means that drawing edge j will cross pixel i  
-    A_low_res: np.shape([low_res**2, n_edges], dtype=float)  resized A_high_res with values between 0 and 1
-    valid_edges_mask: np.shape([n_edges], dtype=bool)        False for excluding edges from the optimization.
+    A_high_res: np.shape([high_res**2, n_strings], dtype=int)  binary matrix where 1 at (i,j) means that drawing edge j will cross pixel i  
+    A_low_res: np.shape([low_res**2, n_strings], dtype=float)  resized A_high_res with values between 0 and 1
+    valid_edges_mask: np.shape([n_strings], dtype=bool)        False for excluding edges from the optimization.
     """
     string_matrices_dir = f"{root_path}/data/string_matrices"
     config_dir = f'{string_matrices_dir}/{n_pins}_{pin_side_length}_{string_thickness}_{min_angle:.4f}_{high_res}_{low_res}'

@@ -26,10 +26,6 @@ class Config:
     name_of_the_run = 'test'
 
     @property
-    def n_edges(self) -> int:
-        return comb(self.n_pins, 2)
-
-    @property
     def pin_width(self) -> float:
         """physical width of a pin in pixel"""
         return self.pin_side_length / self.string_thickness
