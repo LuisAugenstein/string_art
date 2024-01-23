@@ -5,12 +5,11 @@ from string_art.config import get_config
 
 
 def draw_line(line: Line) -> String:
-    performance_mode = get_config().performance_mode
-    if performance_mode:
-        start, end = line
-        x, y = draw.line(start[0], start[1], end[0], end[1])
-        return x, y, np.ones_like(x)
-    return xiaolinwu(line)
+    if get_config().use_xiaolinwu:
+        return xiaolinwu(line)
+    start, end = line
+    x, y = draw.line(start[0], start[1], end[0], end[1])
+    return x, y, np.ones_like(x)
 
 
 def xiaolinwu(line: Line) -> String:

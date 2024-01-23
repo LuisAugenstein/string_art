@@ -23,7 +23,7 @@ def run(img: np.ndarray, config: Config):
     plt.show(block=False)
     callbacks = [LoggingCallback(n_edges=A_high_res.shape[1])]
     if config.plot_optimization:
-        callbacks.append(PlottingCallback(axs[1], config.n_pins, config.high_res, config.pin_side_length, config.string_thickness))
+        callbacks.append(PlottingCallback(axs[1], A_high_res, config.n_pins, config.pin_side_length, config.string_thickness))
     x = load_picked_edges(config.name_of_the_run, img, importance_map, A_high_res, A_low_res, valid_edges_mask, callbacks)
     plt.show()
 
