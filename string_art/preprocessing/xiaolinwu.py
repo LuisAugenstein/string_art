@@ -24,19 +24,22 @@ def xiaolinwu(line: Line) -> String:
 
     gradient = dy / dx
 
-    # Handle first endpoint
-    xend, xend2 = round(x1), round(x2)
-    yend, yend2 = y1 + gradient * (xend - x1), y2 + gradient * (xend2 - x2)
-    xgap, xgap2 = rfpart(x1 + 0.5), fpart(x2 + 0.5)
-    ypxl1, ypxl2 = np.trunc(yend), np.trunc(yend2)
+    x = np.array([x1, x2])
+    y = np.array([y1, y2])
+    xend = ipart(x + 0.5)
+    yend = y + gradient * (xend - x)
+    xgap = rfpart(x + 0.5)
+    ypxl = np.trunc(yend)
 
-    x = [xend, xend, xend2, xend2]
-    y = [ypxl1, ypxl1+1, ypxl2, ypxl2+1]
-    c = [rfpart(yend) * xgap, fpart(yend) * xgap, rfpart(yend) * xgap2, fpart(yend) * xgap2]
+    x = xend.repeat(2)
+    y = [ypxl[0], ypxl[0]+1,
+         ypxl[1], ypxl[1]+1]
+    c = [rfpart(yend[0]) * xgap[0], fpart(yend[0]) * xgap[0],
+         rfpart(yend[0]) * xgap[1], fpart(yend[0]) * xgap[1]]
 
-    i = np.arange(xend + 1, xend2)
+    i = np.arange(xend[0] + 1, xend[1])
     x = np.concatenate([x, i.repeat(2)])
-    intery = yend + 1 + gradient + np.arange(i.shape[0])*gradient
+    intery = yend[0] + 1 + gradient + np.arange(i.shape[0])*gradient
     y = np.concatenate([y, np.array([ipart(intery)-1, ipart(intery)]).T.reshape(-1)])
     c = np.concatenate([c, np.array([rfpart(intery), fpart(intery)]).T.reshape(-1)])
 
@@ -58,10 +61,6 @@ def ipart(x: np.ndarray):
         return np.floor(x).astype(np.int32)
     else:
         return np.ceil(x).astype(np.int32)
-
-
-def round(x):
-    return ipart(x + 0.5)
 
 
 def fpart(x):
