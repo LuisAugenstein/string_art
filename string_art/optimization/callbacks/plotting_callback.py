@@ -1,12 +1,11 @@
+import numpy as np
 from typing import Literal
 import matplotlib.pyplot as plt
 from string_art.entities import get_pins, circular_pin_positions
-from string_art.preprocessing import edges_to_lines_in_positive_domain, get_edges
 from string_art.plotting import plot_pins, plot_line
 from matplotlib.pyplot import Axes
 from scipy.sparse import csc_matrix
 from string_art.transformations import indices_1D_to_2D
-import numpy as np
 
 
 class PlottingCallback():
@@ -23,7 +22,6 @@ class PlottingCallback():
         plot_pins(ax, pins, offset=0.5*high_res)
         self.lines = np.array([[indices_1D_to_2D(A_high_res[:, j].indices[0], high_res),
                                 indices_1D_to_2D(A_high_res[:, j].indices[-1], high_res)] for j in range(n_strings)]).squeeze()
-
         self.line_plots = {}
 
     def choose_next_edge(self, step: int, i_next_edge: int | None, __f_score: float | None) -> None:

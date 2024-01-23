@@ -1,4 +1,4 @@
 from .image_preprocessing import create_circular_mask, preprocess_image
 from .precompute_string_matrix import precompute_string_matrix, get_edges, edges_to_lines_in_positive_domain, strings_to_sparse_matrix
 from .high_res_to_low_res_string_matrix import high_res_to_low_res_matrix, high_res_to_low_res_indices_optimized, high_res_to_low_res_indices
-from .draw_line import draw_line, xiaolinwu
+from .xiaolinwu import xiaolinwu

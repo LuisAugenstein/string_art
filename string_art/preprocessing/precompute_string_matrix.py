@@ -1,7 +1,7 @@
 import numpy as np
 from string_art.entities import String, Pin, Lines, get_pins, circular_pin_positions
 from string_art.transformations import strings_to_sparse_matrix
-from string_art.preprocessing.draw_line import draw_line
+from string_art.preprocessing.xiaolinwu import xiaolinwu
 from itertools import combinations
 from scipy.sparse import csc_matrix
 from string_art.utils import map
@@ -19,7 +19,7 @@ def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickne
     lines = edges_to_lines_in_positive_domain(pins, edges, high_res)  # [n_strings]
     lines -= 1  # account for 0 indexing opposed for 1 indexing in matlab
     print(f'Compute A_high_res for high_res={high_res}')
-    high_res_strings = map(lambda line: filter_string_boundaries(draw_line(line), high_res), lines, performance_mode=True)
+    high_res_strings = map(lambda line: filter_string_boundaries(xiaolinwu(line), high_res), lines, performance_mode=True)
     A_high_res = strings_to_sparse_matrix(high_res_strings, high_res)
     print(f'A_high_res.shape={A_high_res.shape[0]}x{A_high_res.shape[1]}')
     return A_high_res, fabricable

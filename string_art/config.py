@@ -25,9 +25,6 @@ class Config:
     plot_optimization = True
     """Whether to show an animation of the string selection process during the optimization."""
     name_of_the_run = 'test'
-    use_xiaolinwu = False
-    """Whether to use Xiaolin Wu's line algorithm for drawing the strings or skimage.draw (default). 
-       Only use xiaolinwu to compare results with the original matlab code. Otherwise, use skimage.draw for better performance."""
     use_cpus = 1
     """Number of cpus to use for parallelization. Set to 0 to use all available cpus."""
 
