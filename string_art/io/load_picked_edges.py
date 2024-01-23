@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from scipy.sparse import csc_matrix
-from string_art.optimization import IterativeGreedyOptimizer, OptimizedLoss, SimpleLoss, OptimizationCallback
+from string_art.optimization import StringSelection, IterativeGreedyOptimizer, OptimizedLoss, SimpleLoss, OptimizationCallback
 from string_art.io.root_path import get_project_dir
 
 
@@ -14,7 +14,7 @@ def load_picked_edges(name_of_the_run: str, image: np.ndarray, importance_map: n
     # The SimpleLoss produces the same results as the OptimizedLoss, but is much slower.
     # loss = SimpleLoss(image, np.ones_like(importance_map), A_high_res, np.sqrt(A_low_res.shape[0]).astype(int))
     loss = OptimizedLoss(image, np.ones_like(importance_map), A_high_res, A_low_res)
-    optimizer = IterativeGreedyOptimizer(loss, valid_edges_mask)
+    optimizer = IterativeGreedyOptimizer(loss, StringSelection(valid_edges_mask))
     x = optimizer.optimize(callbacks)
     np.save(x_path, x)
     return x

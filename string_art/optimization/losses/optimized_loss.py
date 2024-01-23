@@ -1,33 +1,37 @@
+import numpy
 import numpy as np
+from scipy.sparse import csc_matrix, find
+# import cupy as np
+# from cupy.sparse import find, csc_matrix
+import scipy.sparse
 from typing import Literal
-from scipy.sparse import find, csc_matrix
 from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
 from string_art.transformations import indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 
 
 class OptimizedLoss:
-    def __init__(self, image: np.ndarray, importance_map: np.ndarray, A_high_res: csc_matrix, A_low_res: csc_matrix) -> None:
-        self.b_native_res = image.flatten()
-        self.importance_map = importance_map.flatten()
-        self.A_high_res = A_high_res
-        self.A_low_res = A_low_res
-
-        self.low_res_col_row_values = find(A_low_res.T)
-        self.high_res_col_row_values = find(A_high_res.T)
-        self.high_res_index_to_index_map = self.__get_index_to_index_map(A_high_res)
-        self.low_res_index_to_index_map = self.__get_index_to_index_map(A_low_res)
-
+    def __init__(self, image: numpy.ndarray, importance_map: numpy.ndarray, A_high_res: scipy.sparse.csc_matrix, A_low_res: scipy.sparse.csc_matrix) -> None:
+        self.b_native_res = np.array(image.flatten())
+        self.importance_map = np.array(importance_map.flatten())
+        self.A_high_res = csc_matrix(A_high_res)
+        self.A_low_res = csc_matrix(A_low_res)
+        n_pixels_high_res, n_pixels_low_res = A_high_res.shape[0], A_low_res.shape[0]
+        self.low_res, self.high_res = int(np.sqrt(n_pixels_low_res)), int(np.sqrt(n_pixels_high_res))
         self.n_strings = A_high_res.shape[1]
-        self.low_res, self.high_res = int(np.sqrt(A_low_res.shape[0])), int(np.sqrt(A_high_res.shape[0]))
+
+        self.low_res_col_row_values = find(self.A_low_res.T)
+        self.high_res_col_row_values = find(self.A_high_res.T)
+        self.high_res_index_to_index_map = self.__get_index_to_index_map(self.A_high_res)
+        self.low_res_index_to_index_map = self.__get_index_to_index_map(self.A_low_res)
+
         self.correspondence_map = multi_sample_correspondence_map(self.low_res, self.high_res)
-        self.__x = np.zeros(self.n_strings)
 
-        self.current_recon = np.zeros(A_high_res.shape[0])
-        self.current_recon_unclamped = np.zeros(A_high_res.shape[0])
-        self.current_recon_native_res = np.zeros(A_low_res.shape[0])
+        self.current_recon = np.zeros(n_pixels_high_res)
+        self.current_recon_unclamped = np.zeros(n_pixels_high_res)
+        self.current_recon_native_res = np.zeros(n_pixels_low_res)
 
-        self.highResReIndexMap = np.zeros(A_high_res.shape[0], dtype=int)
-        self.lowResReIndexMap = np.zeros(A_low_res.shape[0], dtype=int)
+        self.highResReIndexMap = np.zeros(n_pixels_high_res, dtype=int)
+        self.lowResReIndexMap = np.zeros(n_pixels_low_res, dtype=int)
 
         self.diff_to_blank_squared_errors = (self.importance_map * self.b_native_res)**2
         self.diff_to_blank_squared_error_sum = np.sum(self.diff_to_blank_squared_errors)
@@ -35,12 +39,11 @@ class OptimizedLoss:
         self.f_adding, self.f_removing = self.__init_f_scores(self.importance_map, self.b_native_res, self.low_res_col_row_values,
                                                               self.diff_to_blank_squared_error_sum, self.n_strings)
 
-    def get_f_scores(self, x: np.ndarray, mode: Literal['add', 'remove'] = 'add') -> tuple[np.ndarray, np.ndarray]:
-        for edge_index in np.where(x != self.__x)[0]:
-            dif = x[edge_index] - self.__x[edge_index]
-            self.__choose_string_and_update(edge_index, dif)
-            self.__x[edge_index] = x[edge_index]
+    def get_f_scores(self,  mode: Literal['add', 'remove'] = 'add') -> tuple[np.ndarray, np.ndarray]:
         return self.f_adding if mode == 'add' else self.f_removing
+
+    def update(self, i_next_string: int, mode: Literal['add', 'remove']) -> np.ndarray:
+        self.__choose_string_and_update(i_next_string, 1 if mode == 'add' else -1)
 
     def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csc_matrix, diff_to_blank_squared_error_sum: float, n_strings: int) -> tuple[np.ndarray, np.ndarray]:
         low_res_corresp_edge_indices, low_res_edge_pixel_indices, low_res_edge_pixel_values = low_res_row_col_values

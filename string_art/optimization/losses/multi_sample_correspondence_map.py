@@ -1,8 +1,9 @@
+import cupy as cp
 import numpy as np
-from scipy.sparse import csr_matrix
+import scipy.sparse
 
 
-def multi_sample_correspondence_map(low_res: int, high_res: int) -> csr_matrix:
+def multi_sample_correspondence_map(low_res: int, high_res: int) -> cp.sparse.csr_matrix:
     """
     Returns
     -
@@ -16,5 +17,6 @@ def multi_sample_correspondence_map(low_res: int, high_res: int) -> csr_matrix:
     row_ind = row_ind.repeat(super_sampling_factor, axis=0).repeat(super_sampling_factor, axis=1).flatten()
     col_ind = np.arange(n_pixels)
     v = np.ones(n_pixels) / (super_sampling_factor ** 2)
-    corresponence_map = csr_matrix((v, (row_ind, col_ind)), shape=(n_correspondence_values, n_pixels))
+    corresponence_map = scipy.sparse.csr_matrix((v, (row_ind, col_ind)), shape=(n_correspondence_values, n_pixels))
+    # return cp.sparse.csr_matrix(corresponence_map)
     return corresponence_map

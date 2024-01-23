@@ -1,4 +1,6 @@
 import numpy as np
+import numpy
+# import cupy as np
 from typing import Literal
 
 
@@ -24,4 +26,5 @@ def indices_2D_to_1D(x: np.ndarray, y: np.ndarray, domain_width: float) -> np.nd
 
 
 def indices_1D_to_2D(i: np.ndarray, domain_width: float, mode: Literal['x-y', 'row-col'] = 'x-y') -> np.ndarray:
-    return np.vstack([i % domain_width, i // domain_width]).T if mode == 'x-y' else np.vstack([i // domain_width, i % domain_width]).T
+    tmp_np = numpy if isinstance(i, numpy.ndarray) else np
+    return tmp_np.vstack([i % domain_width, i // domain_width]).T if mode == 'x-y' else tmp_np.vstack([i // domain_width, i % domain_width]).T

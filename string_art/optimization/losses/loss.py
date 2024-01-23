@@ -1,4 +1,5 @@
 from typing import Protocol, Literal
+# import cupy as np
 import numpy as np
 
 
@@ -14,5 +15,14 @@ class Loss(Protocol):
         -
         f_scores: np.shape([n_strings])   the f_scores for each edge. The lowest f_score indicates which edge to add/remove next.
         Note, that sqrt(f_scores / n_low_res_pixels) denotes the RMSE of the reconstruction after adding/removing the corresponding edge.
+        """
+        ...
+
+    def update(self, i_next_string: int, mode: Literal['add', 'remove']) -> np.ndarray:
+        """
+        Parameters
+        -
+        i_next_string: int   the index of the edge to add/remove next
+        mode: 'add' | 'remove'   determines whether the edge is added or removed
         """
         ...
