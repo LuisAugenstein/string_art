@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from math import pi
+from typing import Literal
 
 
 @dataclass
 class Config:
+    name_of_the_run = 'test'
     invert_input = True
     """false -> reconstruct white area, true -> reconstruct black area"""
     invert_output = True
@@ -24,9 +26,11 @@ class Config:
        A lower min_angle decreases performance since the optimizer has to consider more possible string connections."""
     plot_optimization = True
     """Whether to show an animation of the string selection process during the optimization."""
-    name_of_the_run = 'test'
-    use_cpus = 1
-    """Number of cpus to use for parallelization. Set to 0 to use all available cpus."""
+    use_cuda = False
+    """Whether to run the optimization on the GPU using cupy."""
+    loss_type: Literal['optimized-loss', 'simple-loss'] = 'optimized_loss'
+    """optimized-loss and simple-loss produce the same results. Simple-loss is closer to the maths of the paper and therefore straightforward to understand.
+    However, simple-loss is relatively slow even on the gpu. optimized-loss is a more efficient implementation of the same loss function but much harder to understand."""
 
     @property
     def pin_width(self) -> float:
