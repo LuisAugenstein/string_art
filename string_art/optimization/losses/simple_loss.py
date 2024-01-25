@@ -1,7 +1,7 @@
 import numpy as np
 import cupy as cp
 import scipy.sparse as scipy_sparse
-import cupy.sparse as cp_sparse
+import cupyx.scipy.sparse as cp_sparse
 from typing import Literal
 from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
 

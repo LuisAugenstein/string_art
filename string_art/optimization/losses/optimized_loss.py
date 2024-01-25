@@ -2,7 +2,7 @@ import numpy
 import numpy as np
 from scipy.sparse import csc_matrix, find
 # import cupy as np
-# from cupy.sparse import find, csc_matrix
+# from cupyx.scipy.sparse import find, csc_matrix
 import scipy.sparse
 from typing import Literal
 from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map

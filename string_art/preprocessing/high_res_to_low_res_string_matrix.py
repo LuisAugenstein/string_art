@@ -9,8 +9,9 @@ def high_res_to_low_res_matrix(A_high_res: csc_matrix, low_res: int) -> csc_matr
         i, v = col
         if i.shape[0] == 0:
             return i, v
-        # return high_res_to_low_res_indices(i, v, A_high_res.shape[0], low_res)
-        return high_res_to_low_res_indices_optimized(i, v, A_high_res.shape[0], low_res)
+        high_res = int(np.sqrt(A_high_res.shape[0]))
+        # return high_res_to_low_res_indices(i, v, high_res, low_res)
+        return high_res_to_low_res_indices_optimized(i, v, high_res, low_res)
 
     print(f'Compute A_low_res for low_res={low_res}')
     n_strings = A_high_res.shape[1]
@@ -28,10 +29,9 @@ def high_res_to_low_res_matrix(A_high_res: csc_matrix, low_res: int) -> csc_matr
     return A_low_res
 
 
-def high_res_to_low_res_indices(high_res_indices: np.ndarray, high_res_values: np.ndarray, high_res_squared: int, low_res: int) -> tuple[np.ndarray, np.ndarray]:
-    high_res = int(np.sqrt(high_res_squared))
+def high_res_to_low_res_indices(high_res_indices: np.ndarray, high_res_values: np.ndarray, high_res: int, low_res: int) -> tuple[np.ndarray, np.ndarray]:
     scale = high_res//low_res
-    img = np.zeros(high_res_squared)
+    img = np.zeros(high_res**2)
     img[high_res_indices] = high_res_values
     low_res_img = img.reshape((low_res, scale, low_res, scale)).mean(axis=(1, 3))
     k, j, v = find(low_res_img.T)
@@ -39,18 +39,21 @@ def high_res_to_low_res_indices(high_res_indices: np.ndarray, high_res_values: n
     return i, v
 
 
-def high_res_to_low_res_indices_optimized(high_res_indices: np.ndarray, high_res_values: np.ndarray, high_res_squared: int, low_res: int) -> tuple[np.ndarray, np.ndarray]:
-    high_res = int(np.sqrt(high_res_squared))
+def high_res_to_low_res_indices_optimized(high_res_indices: np.ndarray, high_res_values: np.ndarray, high_res: int, low_res: int) -> tuple[np.ndarray, np.ndarray]:
     scale = high_res//low_res
+    xy = indices_1D_to_2D(high_res_indices, high_res, mode='row-col')  # [N,2]
+    bbox_start = np.min(xy, axis=0)
+    bbox_end = np.max(xy, axis=0)
+    bbox_start -= bbox_start % scale
+    bbox_end += scale - bbox_end % scale
 
-    x, y = indices_1D_to_2D(high_res_indices, high_res, mode='row-col').T
-    bbox_start = np.array([min(x[0], x[-1]), min(y[0], y[-1])])
-    reduce_x, reduce_y = bbox_start - bbox_start % scale
-    img = np.zeros((high_res-reduce_x, high_res-reduce_y))
-    img[x - reduce_x, y - reduce_y] = high_res_values
-    low_res_img = img.reshape((low_res-reduce_x//scale, scale, low_res - reduce_y//scale, scale)).mean(axis=(1, 3))
+    x, y = xy.T - bbox_start[:, None]
+    bbox_end -= bbox_start
+    img = np.zeros((bbox_end[0], bbox_end[1]))
+    img[x, y] = high_res_values
+    low_res_img = img.reshape((bbox_end[0]//scale, scale, bbox_end[1]//scale, scale)).mean(axis=(1, 3))
     k, j, v = find(low_res_img.T)
-    j = j + reduce_x//scale
-    k = k + reduce_y//scale
+    j = j + bbox_start[0]//scale
+    k = k + bbox_start[1]//scale
     i = j * low_res + k
     return i, v
