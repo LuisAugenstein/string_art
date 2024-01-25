@@ -24,15 +24,15 @@ class PlottingCallback():
                                 indices_1D_to_2D(A_high_res[:, j].indices[-1], high_res)] for j in range(n_strings)]).squeeze()
         self.line_plots = {}
 
-    def choose_next_edge(self, step: int, i_next_edge: int | None, __f_score: float | None) -> None:
-        if i_next_edge is None:
+    def choose_next_string(self, step: int, i_next_string: int | None, __f_score: float | None) -> None:
+        if i_next_string is None:
             return
         ax = self.fig.gca()
         if self.mode == 'add':
-            line_plot = plot_line(ax, self.lines[i_next_edge])
-            self.line_plots[i_next_edge] = line_plot
+            line_plot = plot_line(ax, self.lines[i_next_string])
+            self.line_plots[i_next_string] = line_plot
         elif self.mode == 'remove':
-            line_plot = self.line_plots.pop(i_next_edge)
+            line_plot = self.line_plots.pop(i_next_string)
             line_plot.remove()
         plt.pause(0.001)
 

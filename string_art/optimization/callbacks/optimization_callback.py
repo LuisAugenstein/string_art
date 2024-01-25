@@ -2,7 +2,7 @@ from typing import Protocol, Literal
 
 
 class OptimizationCallback(Protocol):
-    def choose_next_edge(self, step: int, i_next_edge: int | None, f_score: float | None) -> None:
+    def choose_next_string(self, step: int, i_next_edge: int | None, f_score: float | None) -> None:
         """
         Parameters
         -
