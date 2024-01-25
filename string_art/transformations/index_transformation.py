@@ -1,7 +1,6 @@
 import numpy as np
-import numpy
-# import cupy as np
 from typing import Literal
+from string_art.api import get_np_array_module
 
 
 def indices_1D_high_res_to_low_res(high_res_indices: np.ndarray, high_res: int, low_res: int) -> np.ndarray:
@@ -13,9 +12,10 @@ def indices_1D_high_res_to_low_res(high_res_indices: np.ndarray, high_res: int, 
 
 
 def indices_1D_low_res_to_high_res(low_res_indices: np.ndarray, low_res: int, high_res: int) -> np.ndarray:
+    xp, _ = get_np_array_module(low_res_indices)
     points_low_res = indices_1D_to_2D(low_res_indices, low_res, 'row-col')
     super_sampling_factor = high_res // low_res
-    offsets = np.vstack([np.array([i, j]) for i in range(super_sampling_factor) for j in range(super_sampling_factor)])
+    offsets = xp.vstack([xp.array([i, j]) for i in range(super_sampling_factor) for j in range(super_sampling_factor)])
     points_low_res = points_low_res[:, None, :]*super_sampling_factor + offsets[None, :, :]
     high_res_indices = indices_2D_to_1D(points_low_res[:, :, 1], points_low_res[:, :, 0], high_res)
     return high_res_indices
@@ -26,5 +26,5 @@ def indices_2D_to_1D(x: np.ndarray, y: np.ndarray, domain_width: float) -> np.nd
 
 
 def indices_1D_to_2D(i: np.ndarray, domain_width: float, mode: Literal['x-y', 'row-col'] = 'x-y') -> np.ndarray:
-    tmp_np = numpy if isinstance(i, numpy.ndarray) else np
-    return tmp_np.vstack([i % domain_width, i // domain_width]).T if mode == 'x-y' else tmp_np.vstack([i // domain_width, i % domain_width]).T
+    xp, _ = get_np_array_module(i)
+    return xp.vstack([i % domain_width, i // domain_width]).T if mode == 'x-y' else xp.vstack([i // domain_width, i % domain_width]).T

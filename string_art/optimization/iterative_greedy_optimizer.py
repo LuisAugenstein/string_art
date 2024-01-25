@@ -1,43 +1,47 @@
 import numpy as np
 import cupy as cp
-from typing import Literal
+from typing import Literal, Protocol
 from string_art.optimization.losses import Loss
-from string_art.optimization.callbacks import OptimizationCallback, LoggingCallback
+from string_art.optimization.callbacks import OptimizationCallback
 from string_art.optimization.string_selection import StringSelection
 import math
 
 
+class StringOptimizer(Protocol):
+    def optimize(self) -> np.ndarray:
+        ...
+
+
 class IterativeGreedyOptimizer:
-    def __init__(self, loss: Loss, string_selection: StringSelection) -> None:
+    def __init__(self, loss: Loss, string_selection: StringSelection, callbacks: list[OptimizationCallback] = [], n_steps_max=100000) -> None:
         self.loss = loss
         self.string_selection = string_selection
+        self.callbacks = callbacks
+        self.n_steps_max = n_steps_max
 
-    def optimize(self, callbacks: list[OptimizationCallback] = [], n_steps=1000) -> np.ndarray:
+    def optimize(self) -> np.ndarray:
         """
         Parameters
         -
         callback: 
         """
-        if len(callbacks) == 0:
-            callbacks = [LoggingCallback(self.string_selection.x.size)]
         best_f_score = math.inf
         switched_in_previous_iteration = False
         mode = 'add'
 
-        for step in range(1, n_steps + 1):
+        for step in range(1, self.n_steps_max + 1):
             i_next_string, f_score = self.__find_best_string(mode)
             if f_score is None or f_score >= best_f_score:
-                [c.choose_next_edge(step, None, None) for c in callbacks]
+                self.__callback_next_string(step, None, None)
                 if switched_in_previous_iteration:
                     break
                 switched_in_previous_iteration = True
-                mode = 'remove' if mode == 'add' else 'add'
-                [c.switch_mode(mode) for c in callbacks]
+                self.__switch_mode(mode)
                 continue
 
             self.loss.update(i_next_string, mode)
             switched_in_previous_iteration = False
-            [c.choose_next_edge(step, i_next_string, f_score) for c in callbacks]
+            self.__callback_next_string(step, i_next_string, f_score)
             self.string_selection.update(i_next_string, mode)
             best_f_score = f_score
 
@@ -48,7 +52,17 @@ class IterativeGreedyOptimizer:
         candidate_edge_indices = self.string_selection.get_selectable_strings(mode)
         if candidate_edge_indices.size == 0:
             return None, None
-        i_min_fscore = np.argmin(f_scores[candidate_edge_indices])
-        i_next_edge = candidate_edge_indices[i_min_fscore.get() if isinstance(i_min_fscore, cp.ndarray) else i_min_fscore]
-        f_score = f_scores[i_next_edge].get() if isinstance(f_scores[i_next_edge], cp.ndarray) else f_scores[i_next_edge]
+        xp = cp.get_array_module(f_scores)
+        i_min_fscore = xp.argmin(f_scores[candidate_edge_indices])
+        i_next_edge = candidate_edge_indices[cp.asnumpy(i_min_fscore)]
+        f_score = cp.asnumpy(f_scores[i_next_edge])
         return i_next_edge, float(f_score)
+
+    def __callback_next_string(self, step: int, i_next_string: int | None, f_score: float | None) -> None:
+        for c in self.callbacks:
+            c.choose_next_string(step, i_next_string, f_score)
+
+    def __switch_mode(self, mode: Literal['add', 'remove']) -> None:
+        for c in self.callbacks:
+            c.switch_mode(mode)
+        return 'remove' if mode == 'add' else 'add'
