@@ -35,8 +35,8 @@ The String art images are created by pulling a string around pins to approximate
 - `Strings` represent the pixels $(x,y)$ and grayscale values $v$ of actual straight lines that connect two pins. Since real pins have a width there are 4 different connection types to connect two pins, namely: `Straight In: 0, Straight Out: 1, Diagonal In: 2, Diagonal Out: 3`. Note, that the connection types $3$ and $4$ can always be associated to one specific line. To assign connection types $1$ and $2$ we need to know whether the edge is ingoing or outgoing. For `n_pins` pins there are `n_strings = 4*n_edges` possible strings that can be drawn. 
 
 
-# Exactly Reproduce Results from original Matlab Code
-Running the examples/reproduce_matlab_results.py file starts a small 16 pin run with the 'cat.png' image. To see the exact same results in the original matlab code a few changes have to be made:
+# Exactly Reproduce Results from Original Matlab Code
+Running the `examples/example.py` file starts a small 16 pin run with the 'cat.png' image. To see the exact same results in the original matlab [code](https://github.com/Exception1984/StringArt), a few changes have to be made:
 
 1. remove the randomness in the `pinPositions.m` file, i.e., replace
 ```matlab
@@ -79,7 +79,7 @@ end
 
 ```
 
-2. In line 59 of `Hook.m` the convex hull computation is not consistent when the pins lie directly opposite to each other. replace only in those cases the `convhull` call with a `boundary` call: 
+2. In line 59 of `Hook.m` the convex hull computation is not consistent when the pins are positioned directly opposite to each other. Only in those cases replace the `convhull` call with a `boundary` call: 
 ```matlab
 ...
 for i = 1 : 4
@@ -93,7 +93,8 @@ for i = 1 : 4
 ...
 ```
 
-3. Optional: Fix the `computeValidEdgesMask` function in the `GreedyMultiSamplingDataObjectL2.m` file from
+3. Optional: Fix the `computeValidEdgesMask` function in the `GreedyMultiSamplingDataObjectL2.m` file 
+from
 ```matlab
 obj.validEdgesMask(edgeAngles <= minAngle) = false;
 ```
@@ -103,4 +104,4 @@ obj.validEdgesMask(edgeAngles - minAngle <= 1e-8) = false;
 ```
 to accurately exclude the edges between pins that are closer than minAngle.
 
-4. Set the number of pins in `example_cat.png` to `numPins=16`
+4. Set the number of pins in `example_cat.m` to `numPins=16` and run it.
