@@ -35,11 +35,11 @@ def xiaolinwu(line: Line) -> String:
     y = [ypxl[0], ypxl[0]+1,
          ypxl[1], ypxl[1]+1]
     c = [rfpart(yend[0]) * xgap[0], fpart(yend[0]) * xgap[0],
-         rfpart(yend[0]) * xgap[1], fpart(yend[0]) * xgap[1]]
+         rfpart(yend[1]) * xgap[1], fpart(yend[1]) * xgap[1]]
 
     i = np.arange(xend[0] + 1, xend[1])
     x = np.concatenate([x, i.repeat(2)])
-    intery = yend[0] + 1 + gradient + np.arange(i.shape[0])*gradient
+    intery = np.cumsum(np.concatenate([[yend[0] + 1 + gradient], np.ones(i.shape[0]-1)*gradient]))
     y = np.concatenate([y, np.array([ipart(intery)-1, ipart(intery)]).T.reshape(-1)])
     c = np.concatenate([c, np.array([rfpart(intery), fpart(intery)]).T.reshape(-1)])
 
