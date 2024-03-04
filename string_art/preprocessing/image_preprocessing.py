@@ -1,35 +1,35 @@
-import numpy as np
+import torch
 from string_art.transformations import matlab_imresize
 
 
-def preprocess_image(image: np.ndarray, resolution: int, invert: bool) -> np.ndarray:
+def preprocess_image(img: torch.Tensor, resolution: int, invert: bool) -> torch.Tensor:
     """
     Parameters
     -
-    image: np.shape([N, N])  square input image with grayscale values between 0 and 255
-    resolution: int          resolution of the output image
-    invert: bool             whether to invert the image or not. Choos such that the background is light and the content dark.
+    img: torch.shape([N, N])  square input image with grayscale values between 0 and 255
+    resolution: int             resolution of the output image
+    invert: bool                whether to invert the image or not. Choos such that the background is light and the content dark.
 
     Returns
     -
-    image: np.shape([resolution, resolution]) resized, normalized and (inverted) image with values between 0 and 1
+    img: torch.shape([resolution, resolution]) resized, normalized and (inverted) image with values between 0 and 1
     """
-    image = image / 255
-    image = matlab_imresize(image, output_shape=(resolution, resolution))
-    image = np.clip(image, 0, 1)
-    image = (image - np.min(image)) / (np.max(image) - np.min(image))
+    img = img / 255
+    img = matlab_imresize(img, output_shape=(resolution, resolution))
+    img = torch.clip(img, 0, 1)
+    img = (img - torch.min(img)) / (torch.max(img) - torch.min(img))
     if invert:
-        image = 1 - image
-    return np.flipud(image)
+        img = 1 - img
+    return torch.flipud(img)
 
 
-def create_circular_mask(size: int, radius: float = None) -> np.ndarray:
+def create_circular_mask(size: int, radius: float = None) -> torch.Tensor:
     """
     Returns
     -
-    mask: np.shape([size, size], dtype=np.bool) mask with True values inside the circle and False values outside the circle
+    mask: torch.shape([size, size], dtype=torch.bool) mask with True values inside the circle and False values outside the circle
     """
-    y, x = np.ogrid[:size, :size]
+    y, x = torch.meshgrid(torch.arange(size), torch.arange(size))
     center = (size-1) // 2
     if radius is None:
         radius = center

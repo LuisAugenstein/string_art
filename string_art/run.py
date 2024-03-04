@@ -6,11 +6,26 @@ from string_art.config import Config
 from string_art.preprocessing import create_circular_mask, preprocess_image
 from string_art.optimization import LoggingCallback, PlottingCallback, IterativeGreedyOptimizer, StringSelection, OptimizedLoss, SimpleLoss
 from string_art.api import get_np_array_module_bool
+import torch
+from time import time
 
 
 def run(img: np.ndarray, config: Config):
+    img: torch.Tensor = torch.Tensor(img)
+
+    torch.set_default_dtype(torch.float64)
+    if config.use_cuda:
+        if not torch.cuda.is_available():
+            print("WARN: cuda is not available. Falling back to cpu computation.")
+        torch.set_default_device('cuda')
+        img = img.cuda()
+
+    start = time()
     img = preprocess_image(img, config.low_res, config.invert_input)
     mask = create_circular_mask(config.low_res)
+    print('took: ', time() - start)
+    img = img.cpu().numpy()
+    mask = mask.cpu().numpy()
     importance_map = np.ones((config.low_res, config.low_res))
     importance_map[~mask] = 0
 
