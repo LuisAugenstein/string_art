@@ -59,7 +59,7 @@ class OptimizedLoss:
         sum_of_squared_errors_per_edge_removing = xp.bincount(j, weights=(w*(b + a))**2, minlength=n_strings)
         diff_to_blank_sum_per_edge = xp.bincount(j, weights=(w*b)**2)
 
-        f_adding = diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_adding
+        f_adding = sum_of_squared_errors_per_edge_adding - diff_to_blank_sum_per_edge + diff_to_blank_squared_error_sum
         f_removing = diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_removing
         return f_adding, f_removing
 
