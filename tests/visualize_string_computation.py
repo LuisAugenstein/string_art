@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from string_art.entities import get_pins
+from string_art.entities import place_pins
 from string_art.preprocessing import get_edges, edges_to_lines_in_positive_domain
 from string_art.transformations import line_to_string
 from string_art.plotting import StringPresenter, plot_lines, plot_pins, plot_strings
@@ -9,7 +9,7 @@ pin_side_length = 2
 string_thickness = 0.15
 high_res = 1024
 
-pins = get_pins(n_pins, radius=0.5*high_res, width=pin_side_length / string_thickness)
+pins = place_pins(n_pins, radius=0.5*high_res, width=pin_side_length / string_thickness)
 edges = get_edges(n_pins)
 lines = edges_to_lines_in_positive_domain(pins, edges, high_res)
 strings = [line_to_string(line) for line in lines]

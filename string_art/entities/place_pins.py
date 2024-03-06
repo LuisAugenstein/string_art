@@ -16,6 +16,6 @@ def circular_pin_positions(n_pins: int, radius: float) -> np.ndarray:
     return radius*pin_positions, pin_angles
 
 
-def get_pins(n_pins: int, radius, width: float, pin_position_function=circular_pin_positions) -> list[Pin]:
+def place_pins(n_pins: int, radius, width: float, pin_position_function=circular_pin_positions) -> list[Pin]:
     pin_positions, pin_angles = pin_position_function(n_pins, radius)
     return [Pin(pos, angle, width) for pos, angle in zip(pin_positions, pin_angles)]

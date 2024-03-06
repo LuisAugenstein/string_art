@@ -11,9 +11,9 @@ from time import time
 
 
 def run(img: np.ndarray, config: Config):
+    torch.set_default_dtype(torch.float64)
     img: torch.Tensor = torch.Tensor(img)
 
-    torch.set_default_dtype(torch.float64)
     if config.use_cuda:
         if not torch.cuda.is_available():
             print("WARN: cuda is not available. Falling back to cpu computation.")

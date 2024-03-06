@@ -1,5 +1,5 @@
 import numpy as np
-from string_art.entities import String, Pin, Lines, get_pins, circular_pin_positions
+from string_art.entities import String, Pin, Lines, place_pins, circular_pin_positions
 from string_art.transformations import strings_to_sparse_matrix
 from string_art.preprocessing.xiaolinwu import xiaolinwu
 from itertools import combinations
@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickness: float, min_angle: float, high_res: int) -> tuple[csc_matrix, np.ndarray]:
     print('\n===Precompute String Matrix===')
-    pins = get_pins(n_pins, radius=0.5*high_res, width=pin_side_length/string_thickness)
+    pins = place_pins(n_pins, radius=0.5*high_res, width=pin_side_length/string_thickness)
     edges = get_edges(n_pins)  # [n_edges, 2]
     print(f'n_pins={n_pins}, n_edges={edges.shape[0]}, n_strings={4*edges.shape[0]}')
     fabricable = get_fabricability_mask(edges, n_pins, min_angle)  # [n_strings]
