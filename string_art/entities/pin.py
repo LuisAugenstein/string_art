@@ -60,7 +60,7 @@ class Pin:
         a_points, b_points = self.corner_points, pinB.corner_points
 
         for i, b_point in enumerate(b_points):
-            distances = torch.norm((a_points - b_point[None, :]), axis=1)
+            distances = torch.norm((a_points - b_point[None, :]), dim=1)
             angles = self.__get_normalized_angles(b_point)
             thresh = 1e-8
 
@@ -73,7 +73,7 @@ class Pin:
             lineBA = torch.vstack([b_point, a_points[i_min_angle]])
 
             jump_vertices = [i_max_angle, i_min_angle]
-            rem_B = torch.cat(b_points[:i], b_points[i+1:])
+            rem_B = torch.cat([b_points[:i], b_points[i+1:]])
 
             for j, line in enumerate([lineAB, lineBA]):
                 distances_B = distance(line, rem_B, signed=True)
@@ -81,7 +81,7 @@ class Pin:
                 dir = end - start
                 length = torch.norm(dir)
                 if torch.all(distances_B >= 0) or torch.all(distances_B <= 0):
-                    rem_A = torch.cat(a_points[:jump_vertices[j]], a_points[jump_vertices[j]+1:])
+                    rem_A = torch.cat([a_points[:jump_vertices[j]], a_points[jump_vertices[j]+1:]])
                     distances_A = distance(line, rem_A)
                     if torch.sum(distances_A >= 0) == torch.sum(distances_B >= 0):
                         if best_lengths[j] is None or best_lengths[j] > length:
@@ -122,7 +122,8 @@ def normal_vector(line: torch.Tensor) -> torch.Tensor:
     normal_vector: torch.shape([2]) 2D unit length normal vector of the line
     """
     start, end = line
-    direction_vector = torch.nn.functional.normalize(end - start)
+    diff = end - start
+    direction_vector = diff / torch.norm(diff)
     return torch.Tensor([-direction_vector[1], direction_vector[0]])
 
 

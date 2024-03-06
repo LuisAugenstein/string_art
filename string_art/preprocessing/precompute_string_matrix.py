@@ -17,7 +17,7 @@ def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickne
     fabricable = get_fabricability_mask(edges, n_pins, min_angle)  # [n_strings]
     print(f'min_angle={min_angle:.4f} exludes {torch.sum(~fabricable)} strings.')
     print(f'Compute lines in positive domain')
-    lines = edges_to_lines_in_positive_domain(pins, edges, high_res)  # [n_strings]
+    lines = edges_to_lines_in_positive_domain(pins, edges, high_res)  # [n_strings, 2, 2]
 
     lines = lines.cpu().numpy()
 
@@ -74,7 +74,7 @@ def edges_to_lines_in_positive_domain(pins: list[Pin], edges: torch.Tensor, high
     lines: torch.shape([4*n_edges, 2, 2])  list of all possible lines between the pins
     """
     nested_lines = map(lambda edge: pins[edge[0]].get_possible_connections(pins[edge[1]]), edges)
-    return torch.Tensor([torch.round(line + (high_res+1)/2).to(torch.int32) for lines in nested_lines for line in lines])
+    return torch.stack([torch.round(line + (high_res+1)/2).to(torch.int32) for lines in nested_lines for line in lines])
 
 
 def filter_string_boundaries(string: String, high_res) -> String:
