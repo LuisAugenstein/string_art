@@ -20,18 +20,18 @@ def run(img: np.ndarray, config: Config):
         torch.set_default_device('cuda')
         img = img.cuda()
 
-    start = time()
     img = preprocess_image(img, config.low_res, config.invert_input)
     mask = create_circular_mask(config.low_res)
-    print('took: ', time() - start)
-    img = img.cpu().numpy()
-    mask = mask.cpu().numpy()
-    importance_map = np.ones((config.low_res, config.low_res))
+    importance_map = torch.ones((config.low_res, config.low_res))
     importance_map[~mask] = 0
 
     # Precompute string matrices
     A_high_res, A_low_res, valid_edges_mask = load_string_matrices(config.n_pins, config.pin_side_length, config.string_thickness,
                                                                    config.min_angle, config.high_res, config.low_res)
+
+    img = img.cpu().numpy()
+    mask = mask.cpu().numpy()
+    importance_map = importance_map.cpu().numpy()
 
     # Run optimization or load edges from disk
     axs = __plot_image(img)

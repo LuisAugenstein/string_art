@@ -1,18 +1,19 @@
 import numpy as np
+import torch
 from string_art.entities.pin import Pin
 
 
-def circular_pin_positions(n_pins: int, radius: float) -> np.ndarray:
+def circular_pin_positions(n_pins: int, radius: float) -> torch.Tensor:
     """
     places n points around a circle with radius r
 
     Returns
     -
-    pin_positions: np.shape([n_pins, 2])  x,y coordinates of the pins
-    angles: np.shape([n_pins])  angles of the pins spanning a circle. can be used for spherical coordinates (angle, radius)
+    pin_positions: torch.shape([n_pins, 2])  x,y coordinates of the pins
+    angles: torch.shape([n_pins])  angles of the pins spanning a circle. can be used for spherical coordinates (angle, radius)
     """
-    pin_angles = np.linspace(0, 2*np.pi, n_pins, endpoint=False)
-    pin_positions = np.column_stack([np.cos(pin_angles), np.sin(pin_angles)])
+    pin_angles = torch.linspace(0, 2*np.pi - 2*np.pi/n_pins, n_pins)
+    pin_positions = torch.column_stack([torch.cos(pin_angles), torch.sin(pin_angles)])
     return radius*pin_positions, pin_angles
 
 
