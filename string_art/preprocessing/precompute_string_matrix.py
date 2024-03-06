@@ -18,12 +18,12 @@ def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickne
     print(f'min_angle={min_angle:.4f} exludes {torch.sum(~fabricable)} strings.')
     print(f'Compute lines in positive domain')
     lines = edges_to_lines_in_positive_domain(pins, edges, high_res)  # [n_strings, 2, 2]
-
-    lines = lines.cpu().numpy()
-
     lines -= 1  # account for 0 indexing opposed for 1 indexing in matlab
     print(f'Compute A_high_res for high_res={high_res}')
     high_res_strings = map(lambda line: filter_string_boundaries(xiaolinwu(line), high_res), lines, performance_mode=True)
+
+    high_res_strings = [(x.numpy(), y.numpy(), c.numpy()) for x, y, c in high_res_strings]
+
     A_high_res = strings_to_sparse_matrix(high_res_strings, high_res)
     print(f'A_high_res.shape={A_high_res.shape[0]}x{A_high_res.shape[1]}')
     return A_high_res, fabricable
