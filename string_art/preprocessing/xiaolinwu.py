@@ -32,10 +32,8 @@ def xiaolinwu(line: Line) -> String:
     ypxl = np.trunc(yend)
 
     x = xend.repeat(2)
-    y = [ypxl[0], ypxl[0]+1,
-         ypxl[1], ypxl[1]+1]
-    c = [rfpart(yend[0]) * xgap[0], fpart(yend[0]) * xgap[0],
-         rfpart(yend[1]) * xgap[1], fpart(yend[1]) * xgap[1]]
+    y = [ypxl[0], ypxl[0]+1, ypxl[1], ypxl[1]+1]
+    c = np.array([rfpart(yend)*xgap, fpart(yend)*xgap]).T.flatten()
 
     i = np.arange(xend[0] + 1, xend[1])
     x = np.concatenate([x, i.repeat(2)])
@@ -50,17 +48,16 @@ def xiaolinwu(line: Line) -> String:
 
 
 def ipart(x: np.ndarray):
-    if isinstance(x, np.ndarray):
-        mask = x > 0
-        x = x.copy()
-        x[mask] = np.floor(x[mask])
-        x[~mask] = np.ceil(x[~mask])
-        return x
-
-    if x > 0:
-        return np.floor(x).astype(np.int32)
-    else:
-        return np.ceil(x).astype(np.int32)
+    """
+    Parameters
+    -
+    x: torch.shape([N])
+    """
+    mask = x > 0
+    x = x.copy()
+    x[mask] = np.floor(x[mask])
+    x[~mask] = np.ceil(x[~mask])
+    return x
 
 
 def fpart(x):
