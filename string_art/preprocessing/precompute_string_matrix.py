@@ -2,14 +2,17 @@ import numpy as np
 from string_art.entities import String, Pin, Lines, place_pins, circular_pin_positions
 from string_art.transformations import strings_to_sparse_matrix
 from string_art.preprocessing.xiaolinwu import xiaolinwu
-from itertools import combinations
-from scipy.sparse import csc_matrix
 from string_art.utils import map
-from tqdm import tqdm
 import torch
 
 
-def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickness: float, min_angle: float, high_res: int) -> tuple[csc_matrix, np.ndarray]:
+def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickness: float, min_angle: float, high_res: int) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Returns
+    -
+    A_high_res: torch.shape([high_res**2, n_strings]) values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
+    fabricable: torch.shape([n_strings]) boolean mask indicating which strings are fabricable
+    """
     print('\n===Precompute String Matrix===')
     pins = place_pins(n_pins, radius=0.5*high_res, width=pin_side_length/string_thickness)
     edges = get_edges(n_pins)  # [n_edges, 2]
@@ -21,9 +24,6 @@ def precompute_string_matrix(n_pins: int, pin_side_length: float, string_thickne
     lines -= 1  # account for 0 indexing opposed for 1 indexing in matlab
     print(f'Compute A_high_res for high_res={high_res}')
     high_res_strings = map(lambda line: filter_string_boundaries(xiaolinwu(line), high_res), lines, performance_mode=True)
-
-    high_res_strings = [(x.numpy(), y.numpy(), c.numpy()) for x, y, c in high_res_strings]
-
     A_high_res = strings_to_sparse_matrix(high_res_strings, high_res)
     print(f'A_high_res.shape={A_high_res.shape[0]}x{A_high_res.shape[1]}')
     return A_high_res, fabricable

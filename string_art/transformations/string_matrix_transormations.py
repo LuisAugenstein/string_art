@@ -2,13 +2,14 @@ import numpy as np
 from string_art.entities import String
 from scipy.sparse import csc_matrix
 from string_art.transformations.index_transformation import indices_1D_to_2D, indices_2D_to_1D
+import torch
 
 
-def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csc_matrix:
+def strings_to_sparse_matrix(strings: list[String], resolution: int) -> torch.Tensor:
     """
     Returns
     -
-    A: np.shape([n_pixels, n_strings])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
+    A: torch.shape([n_pixels, n_strings])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
     """
     n_pixels, n_strings = resolution**2, len(strings)
     rows, cols, values = [], [], []
@@ -16,10 +17,11 @@ def strings_to_sparse_matrix(strings: list[String], resolution: int) -> csc_matr
         x, y, v = string
         i = indices_2D_to_1D(x, y, resolution)
         rows.append(i)
-        cols.append(np.ones_like(v)*j)
+        cols.append(torch.ones_like(v)*j)
         values.append(v)
-    rows, cols, values = [np.concatenate(l) for l in [rows, cols, values]]
-    return csc_matrix((values, (rows, cols)), shape=(n_pixels, n_strings))
+    rows, cols, values = [torch.concatenate(l) for l in [rows, cols, values]]
+    indices = torch.stack([rows, cols])
+    return torch.sparse_coo_tensor(indices, values, size=(n_pixels, n_strings), is_coalesced=True)
 
 
 def sparse_matrix_to_strings(A: csc_matrix) -> list[String]:
