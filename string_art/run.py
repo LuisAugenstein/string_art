@@ -8,6 +8,7 @@ from string_art.optimization import LoggingCallback, PlottingCallback, Iterative
 from string_art.api import get_np_array_module_bool
 import torch
 from time import time
+from scipy.sparse import csc_matrix
 
 
 def run(img: np.ndarray, config: Config):
@@ -29,6 +30,9 @@ def run(img: np.ndarray, config: Config):
     A_high_res, A_low_res, valid_edges_mask = load_string_matrices(config.n_pins, config.pin_side_length, config.string_thickness,
                                                                    config.min_angle, config.high_res, config.low_res)
 
+    A_high_res = csc_matrix((A_high_res.values(), (A_high_res.indices()[0], A_high_res.indices()[1])), shape=A_high_res.shape)
+    A_low_res = csc_matrix((A_low_res.values(), (A_low_res.indices()[0], A_low_res.indices()[1])), shape=A_low_res.shape)
+    valid_edges_mask = valid_edges_mask.numpy()
     img = img.cpu().numpy()
     mask = mask.cpu().numpy()
     importance_map = importance_map.cpu().numpy()

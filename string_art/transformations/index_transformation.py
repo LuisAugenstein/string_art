@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Literal
 from string_art.api import get_np_array_module
+import torch
 
 
 def indices_1D_high_res_to_low_res(high_res_indices: np.ndarray, high_res: int, low_res: int) -> np.ndarray:
@@ -25,6 +26,11 @@ def indices_2D_to_1D(x: np.ndarray, y: np.ndarray, domain_width: float) -> np.nd
     return y * domain_width + x
 
 
-def indices_1D_to_2D(i: np.ndarray, domain_width: float, mode: Literal['x-y', 'row-col'] = 'x-y') -> np.ndarray:
-    xp, _ = get_np_array_module(i)
-    return xp.vstack([i % domain_width, i // domain_width]).T if mode == 'x-y' else xp.vstack([i // domain_width, i % domain_width]).T
+def indices_1D_to_2D(i: torch.Tensor, domain_width: float, mode: Literal['x-y', 'row-col'] = 'x-y') -> torch.Tensor:
+    if not torch.is_tensor(i):
+        xp, _ = get_np_array_module(i)
+        return xp.vstack([i % domain_width, i // domain_width]).T if mode == 'x-y' else xp.vstack([i // domain_width, i % domain_width]).T
+
+    if mode == 'x-y':
+        return torch.vstack([i % domain_width, i // domain_width]).T
+    return torch.vstack([i // domain_width, i % domain_width]).T

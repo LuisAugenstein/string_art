@@ -21,7 +21,7 @@ def strings_to_sparse_matrix(strings: list[String], resolution: int) -> torch.Te
         values.append(v)
     rows, cols, values = [torch.concatenate(l) for l in [rows, cols, values]]
     indices = torch.stack([rows, cols])
-    return torch.sparse_coo_tensor(indices, values, size=(n_pixels, n_strings), is_coalesced=True)
+    return torch.sparse_coo_tensor(indices, values, size=(n_pixels, n_strings))
 
 
 def sparse_matrix_to_strings(A: csc_matrix) -> list[String]:

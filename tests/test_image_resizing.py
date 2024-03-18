@@ -3,7 +3,7 @@ import imageio.v3 as imageio
 from scipy.io import loadmat
 from tests.utils import measure_time
 from string_art.transformations import matlab_imresize
-from string_art.preprocessing import high_res_to_low_res_indices, high_res_to_low_res_indices_optimized
+from string_art.preprocessing import high_res_to_low_res_string_indices, high_res_to_low_res_string_indices_optimized
 
 
 def test_matlab_imresize():

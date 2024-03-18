@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.io import loadmat
-from scipy.sparse import find, csc_matrix
+from scipy.sparse import csc_matrix
 from string_art.config import get_config
-from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_matrix, high_res_to_low_res_indices, high_res_to_low_res_indices_optimized
+from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_string_matrix, high_res_to_low_res_string_indices, high_res_to_low_res_string_indices_optimized
 from tests.utils import measure_time
 from typing import Callable
 from tqdm import tqdm
@@ -43,9 +43,9 @@ def test_string_matrix_resizing():
                 return False
         return True
 
-    assert compare_low_res_string_matrices(high_res_to_low_res_indices, n_pins=16)
-    assert compare_low_res_string_matrices(high_res_to_low_res_indices_optimized, n_pins=16)
-    assert compare_low_res_string_matrices(high_res_to_low_res_indices_optimized, n_pins=32)
+    assert compare_low_res_string_matrices(high_res_to_low_res_string_indices, n_pins=16)
+    assert compare_low_res_string_matrices(high_res_to_low_res_string_indices_optimized, n_pins=16)
+    assert compare_low_res_string_matrices(high_res_to_low_res_string_indices_optimized, n_pins=32)
 
 
 def test_high_res_to_low_res_indices_optimized():
@@ -57,9 +57,9 @@ def test_high_res_to_low_res_indices_optimized():
     high_res = int(np.sqrt(A_high_res.shape[0]))
     low_res = high_res // 8
     column_index = 0  # arbitrary value
-    (i, v), t = measure_time(lambda: high_res_to_low_res_indices(
+    (i, v), t = measure_time(lambda: high_res_to_low_res_string_indices(
         A_high_res[:, column_index].indices, A_high_res[:, column_index].data, high_res, low_res))
-    (i2, v2), t2 = measure_time(lambda: high_res_to_low_res_indices_optimized(
+    (i2, v2), t2 = measure_time(lambda: high_res_to_low_res_string_indices_optimized(
         A_high_res[:, column_index].indices, A_high_res[:, column_index].data, high_res, low_res))
     assert np.allclose(i, i2) and np.allclose(v, v2)
     speedup = t // t2
