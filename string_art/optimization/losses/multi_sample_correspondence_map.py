@@ -1,4 +1,5 @@
 import torch
+from scipy.sparse import csr_matrix
 
 
 def multi_sample_correspondence_map(low_res: int, high_res: int) -> torch.Tensor:
@@ -26,4 +27,5 @@ def multi_sample_correspondence_map(low_res: int, high_res: int) -> torch.Tensor
     cols = torch.arange(n_pixels)
     values = torch.ones(n_pixels) / (super_sampling_factor ** 2)
     indices = torch.stack([rows, cols])
-    return torch.sparse_coo_tensor(indices, values, size=(n_correspondence_values, n_pixels))
+    # return torch.sparse_coo_tensor(indices, values, size=(n_correspondence_values, n_pixels))
+    return csr_matrix((values.numpy(), (rows.numpy(), cols.numpy())), shape=(n_correspondence_values, n_pixels))

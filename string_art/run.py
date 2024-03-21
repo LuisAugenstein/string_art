@@ -30,22 +30,18 @@ def run(img: np.ndarray, config: Config):
     A_high_res, A_low_res, valid_edges_mask = load_string_matrices(config.n_pins, config.pin_side_length, config.string_thickness,
                                                                    config.min_angle, config.high_res, config.low_res)
 
-    A_high_res = csc_matrix((A_high_res.values(), (A_high_res.indices()[0], A_high_res.indices()[1])), shape=A_high_res.shape)
-    A_low_res = csc_matrix((A_low_res.values(), (A_low_res.indices()[0], A_low_res.indices()[1])), shape=A_low_res.shape)
-    valid_edges_mask = valid_edges_mask.numpy()
-    img = img.cpu().numpy()
-    mask = mask.cpu().numpy()
-    importance_map = importance_map.cpu().numpy()
+    A_high_res_csc = csc_matrix((A_high_res.values(), (A_high_res.indices()[0], A_high_res.indices()[1])), shape=A_high_res.shape)
+    # A_low_res_csc = csc_matrix((A_low_res.values(), (A_low_res.indices()[0], A_low_res.indices()[1])), shape=A_low_res.shape)
 
     # Run optimization or load edges from disk
-    axs = __plot_image(img)
-    callbacks = [LoggingCallback(n_edges=A_high_res.shape[1])]
+    axs = __plot_image(img.numpy())
+    callbacks = [LoggingCallback(n_edges=A_high_res_csc.shape[1])]
     if config.plot_optimization:
-        callbacks.append(PlottingCallback(axs[1], A_high_res, config.n_pins, config.pin_side_length, config.string_thickness))
-    xp, xipy = get_np_array_module_bool(config.use_cuda)
+        callbacks.append(PlottingCallback(axs[1], A_high_res_csc, config.n_pins, config.pin_side_length, config.string_thickness))
+
     losses = {
-        'simple-loss': lambda: SimpleLoss(xp.array(img), xp.ones_like(importance_map), xipy.sparse.csc_matrix(A_high_res), np.sqrt(A_low_res.shape[0]).astype(int)),
-        'optimized-loss': lambda: OptimizedLoss(xp.array(img), xp.ones_like(importance_map), xipy.sparse.csc_matrix(A_high_res), xipy.sparse.csc_matrix(A_low_res))
+        'simple-loss': lambda: SimpleLoss(img, torch.ones_like(importance_map), A_high_res),
+        'optimized-loss': lambda: OptimizedLoss(img, torch.ones_like(importance_map), A_high_res, A_low_res)
     }
     optimizer = IterativeGreedyOptimizer(losses[config.loss_type](), StringSelection(valid_edges_mask), callbacks)
     x = load_picked_edges(config.name_of_the_run, optimizer)

@@ -5,6 +5,7 @@ from string_art.optimization.losses import Loss
 from string_art.optimization.callbacks import OptimizationCallback
 from string_art.optimization.string_selection import StringSelection
 import math
+import torch
 
 
 class StringOptimizer(Protocol):
@@ -52,11 +53,9 @@ class IterativeGreedyOptimizer:
         candidate_edge_indices = self.string_selection.get_selectable_strings(mode)
         if candidate_edge_indices.size == 0:
             return None, None
-        xp = cp.get_array_module(f_scores)
-        i_min_fscore = xp.argmin(f_scores[candidate_edge_indices])
-        i_next_edge = candidate_edge_indices[cp.asnumpy(i_min_fscore)]
-        f_score = cp.asnumpy(f_scores[i_next_edge])
-        return i_next_edge, float(f_score)
+        i_min_fscore = torch.argmin(f_scores[candidate_edge_indices])
+        i_next_edge = candidate_edge_indices[i_min_fscore]
+        return i_next_edge.item(), f_scores[i_next_edge].item()
 
     def __callback_next_string(self, step: int, i_next_string: int | None, f_score: float | None) -> None:
         for c in self.callbacks:

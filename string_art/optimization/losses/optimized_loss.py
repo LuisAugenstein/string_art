@@ -4,13 +4,24 @@ from typing import Literal
 from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
 from string_art.transformations import indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 from string_art.api import get_np_array_module
+import torch
 
 
 class OptimizedLoss:
-    def __init__(self, img: np.ndarray, importance_map: np.ndarray, A_high_res: csc_matrix, A_low_res: csc_matrix) -> None:
+    def __init__(self, img: torch.Tensor, importance_map: torch.Tensor, A_high_res: torch.Tensor, A_low_res: torch.Tensor) -> None:
         """
-        Parameters can also be cupy types.
+        Parameters
+        -
+        img:            torch.shape([low_res, low_res]) grayscale image with values between 0 and 1
+        importance_map: torch.shape([low_res, low_res]) scalars between 0 and 1 to weight the reconstruction importance of different image regions
+        A_high_res:     torch.shape([high_res**2, n_strings])
+        A_low_res:      torch.shape([low_res**2, n_strings])
         """
+        img = img.numpy()
+        importance_map = importance_map.numpy()
+        A_high_res = csc_matrix((A_high_res.values(), (A_high_res.indices()[0], A_high_res.indices()[1])), shape=A_high_res.shape)
+        A_low_res = csc_matrix((A_low_res.values(), (A_low_res.indices()[0], A_low_res.indices()[1])), shape=A_low_res.shape)
+
         # define helper variables
         self.xp, self.xipy = get_np_array_module(img)
         xp = self.xp
@@ -42,8 +53,8 @@ class OptimizedLoss:
         self.f_adding, self.f_removing = self.__init_f_scores(self.importance_map, self.b_native_res, self.low_res_col_row_values,
                                                               self.diff_to_blank_squared_error_sum, self.n_strings)
 
-    def get_f_scores(self,  mode: Literal['add', 'remove'] = 'add') -> tuple[np.ndarray, np.ndarray]:
-        return self.f_adding if mode == 'add' else self.f_removing
+    def get_f_scores(self,  mode: Literal['add', 'remove'] = 'add') -> tuple[torch.Tensor, torch.Tensor]:
+        return torch.Tensor(self.f_adding) if mode == 'add' else torch.Tensor(self.f_removing)
 
     def update(self, i_next_string: int, mode: Literal['add', 'remove']) -> np.ndarray:
         self.__choose_string_and_update(i_next_string, 1 if mode == 'add' else -1)
