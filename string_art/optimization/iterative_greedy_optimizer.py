@@ -1,15 +1,12 @@
-import numpy as np
-import cupy as cp
+import torch
 from typing import Literal, Protocol
 from string_art.optimization.losses import Loss
 from string_art.optimization.callbacks import OptimizationCallback
 from string_art.optimization.string_selection import StringSelection
-import math
-import torch
 
 
 class StringOptimizer(Protocol):
-    def optimize(self) -> np.ndarray:
+    def optimize(self) -> torch.Tensor:
         ...
 
 
@@ -20,13 +17,13 @@ class IterativeGreedyOptimizer:
         self.callbacks = callbacks
         self.n_steps_max = n_steps_max
 
-    def optimize(self) -> np.ndarray:
+    def optimize(self) -> torch.Tensor:
         """
         Parameters
         -
         callback: 
         """
-        best_f_score = math.inf
+        best_f_score = torch.inf
         switched_in_previous_iteration = False
         mode = 'add'
 

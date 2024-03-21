@@ -19,11 +19,11 @@ class Loss(Protocol):
         """
         ...
 
-    def update(self, i_next_string: int, mode: Literal['add', 'remove']) -> None:
+    def update(self, i_next_string: torch.Tensor, mode: Literal['add', 'remove']) -> None:
         """
         Parameters
         -
-        i_next_string: int   the index of the edge to add/remove next
+        i_next_string: torch.shape([], int)   the index of the edge to add/remove next
         mode: 'add' | 'remove'   determines whether the edge is added or removed
         """
         ...

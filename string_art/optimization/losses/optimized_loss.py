@@ -56,7 +56,14 @@ class OptimizedLoss:
     def get_f_scores(self,  mode: Literal['add', 'remove'] = 'add') -> tuple[torch.Tensor, torch.Tensor]:
         return torch.Tensor(self.f_adding) if mode == 'add' else torch.Tensor(self.f_removing)
 
-    def update(self, i_next_string: int, mode: Literal['add', 'remove']) -> np.ndarray:
+    def update(self, i_next_string: torch.Tensor, mode: Literal['add', 'remove']) -> torch.Tensor:
+        """
+        Updates the f_scores after choosing the next string.
+
+        Parameters
+        -
+        i_next_string: torch.shape([], int)  index of the next string to choose
+        """
         self.__choose_string_and_update(i_next_string, 1 if mode == 'add' else -1)
 
     def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csc_matrix, diff_to_blank_squared_error_sum: float, n_strings: int) -> tuple[np.ndarray, np.ndarray]:
