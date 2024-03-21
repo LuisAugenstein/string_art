@@ -17,7 +17,12 @@ class StringSelection:
     def x(self) -> torch.Tensor:
         return self.__x
 
-    def update(self, i_string: int, mode: Literal['add', 'remove']) -> None:
+    def update(self, i_string: torch.Tensor, mode: Literal['add', 'remove']) -> None:
+        """
+        Parameters
+        -
+        i_string: torch.shape([], int)   index of the string to add or remove
+        """
         if mode == 'add':
             self.__addable_edge_indices = self.__addable_edge_indices[self.__addable_edge_indices != i_string]
             self.__removable_edge_indices = torch.concat([self.__removable_edge_indices, torch.Tensor([i_string])])

@@ -37,26 +37,32 @@ class IterativeGreedyOptimizer:
                 self.__switch_mode(mode)
                 continue
 
-            self.loss.update(i_next_string, mode)
             switched_in_previous_iteration = False
             self.__callback_next_string(step, i_next_string, f_score)
             self.string_selection.update(i_next_string, mode)
             best_f_score = f_score
+            self.loss.update(i_next_string, mode)
 
         return self.string_selection.x
 
-    def __find_best_string(self, mode: Literal['add', 'remove'] = 'add') -> tuple[int, float]:
+    def __find_best_string(self, mode: Literal['add', 'remove'] = 'add') -> tuple[torch.Tensor | None, torch.Tensor | None]:
+        """
+        Returns
+        -
+        i_next_string: torch.shape([], int)   index of best next string 
+        f_score: torch.shape([])              f_score after choosing the next string
+        """
         f_scores = self.loss.get_f_scores(mode)
         candidate_edge_indices = self.string_selection.get_selectable_strings(mode)
         if candidate_edge_indices.size == 0:
             return None, None
         i_min_fscore = torch.argmin(f_scores[candidate_edge_indices])
-        i_next_edge = candidate_edge_indices[i_min_fscore]
-        return i_next_edge.item(), f_scores[i_next_edge].item()
+        i_next_string = candidate_edge_indices[i_min_fscore]
+        return i_next_string, f_scores[i_next_string]
 
-    def __callback_next_string(self, step: int, i_next_string: int | None, f_score: float | None) -> None:
+    def __callback_next_string(self, step: int, i_next_string: torch.Tensor | None, f_score: torch.Tensor | None) -> None:
         for c in self.callbacks:
-            c.choose_next_string(step, i_next_string, f_score)
+            c.choose_next_string(step, i_next_string.item(), f_score.item())
 
     def __switch_mode(self, mode: Literal['add', 'remove']) -> None:
         for c in self.callbacks:

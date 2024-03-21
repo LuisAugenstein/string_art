@@ -64,7 +64,7 @@ class OptimizedLoss:
         -
         i_next_string: torch.shape([], int)  index of the next string to choose
         """
-        self.__choose_string_and_update(i_next_string, 1 if mode == 'add' else -1)
+        self.__choose_string_and_update(i_next_string.item(), 1 if mode == 'add' else -1)
 
     def __init_f_scores(self, importance_map: np.ndarray, b_native_res: np.ndarray, low_res_row_col_values: csc_matrix, diff_to_blank_squared_error_sum: float, n_strings: int) -> tuple[np.ndarray, np.ndarray]:
         low_res_corresp_edge_indices, low_res_edge_pixel_indices, low_res_edge_pixel_values = low_res_row_col_values
