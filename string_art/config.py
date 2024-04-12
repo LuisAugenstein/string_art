@@ -27,7 +27,7 @@ class Config:
     plot_optimization = True
     """Whether to show an animation of the string selection process during the optimization."""
     use_cuda = False
-    """Whether to run the optimization on the GPU using cupy."""
+    """Whether to run the optimization on the GPU."""
     loss_type: Literal['optimized-loss', 'simple-loss'] = 'optimized_loss'
     """optimized-loss and simple-loss produce the same results. Simple-loss is closer to the maths of the paper and therefore straightforward to understand.
     However, simple-loss is relatively slow even on the gpu. optimized-loss is a more efficient implementation of the same loss function but much harder to understand."""

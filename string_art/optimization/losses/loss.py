@@ -3,7 +3,6 @@ import torch
 
 
 class Loss(Protocol):
-    """All implementations of this protocol should be able to operate with cupy arrays as input."""
 
     def get_f_scores(self, x: torch.Tensor, mode: Literal['add', 'remove'] = 'add') -> torch.Tensor:
         """

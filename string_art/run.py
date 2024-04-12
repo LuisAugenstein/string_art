@@ -5,7 +5,6 @@ from string_art.transformations import matlab_imresize
 from string_art.config import Config
 from string_art.preprocessing import create_circular_mask, preprocess_image
 from string_art.optimization import LoggingCallback, PlottingCallback, IterativeGreedyOptimizer, StringSelection, OptimizedLoss, SimpleLoss
-from string_art.api import get_np_array_module_bool
 import torch
 from time import time
 from scipy.sparse import csc_matrix
