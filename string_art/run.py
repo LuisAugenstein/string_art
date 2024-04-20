@@ -42,7 +42,7 @@ def run(img: np.ndarray, config: Config):
         'simple-loss': lambda: SimpleLoss(img, torch.ones_like(importance_map), A_high_res),
         'optimized-loss': lambda: OptimizedLoss(img, torch.ones_like(importance_map), A_high_res, A_low_res)
     }
-    optimizer = IterativeGreedyOptimizer(losses[config.loss_type](), StringSelection(valid_edges_mask), callbacks)
+    optimizer = IterativeGreedyOptimizer(losses[config.loss_type](), StringSelection(valid_edges_mask), callbacks, n_steps_max=config.n_steps)
     x = load_picked_edges(config.name_of_the_run, optimizer)
 
     # reconstruct image

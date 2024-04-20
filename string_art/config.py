@@ -31,6 +31,8 @@ class Config:
     loss_type: Literal['optimized-loss', 'simple-loss'] = 'optimized_loss'
     """optimized-loss and simple-loss produce the same results. Simple-loss is closer to the maths of the paper and therefore straightforward to understand.
     However, simple-loss is relatively slow even on the gpu. optimized-loss is a more efficient implementation of the same loss function but much harder to understand."""
+    n_steps: int = 10000
+    """maximum number of steps to run the optimizer. The optimizer stops early if the loss function converges."""
 
     @property
     def pin_width(self) -> float:

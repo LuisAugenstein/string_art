@@ -10,6 +10,7 @@ config.n_pins = 16
 config.string_thickness = 0.15
 config.use_cuda = False
 config.loss_type = 'optimized-loss'
+config.n_steps = 5
 string_art.run(img, config)
 
 """
