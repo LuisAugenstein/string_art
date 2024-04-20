@@ -29,7 +29,7 @@ def create_circular_mask(size: int, radius: float = None) -> torch.Tensor:
     -
     mask: torch.shape([size, size], dtype=torch.bool) mask with True values inside the circle and False values outside the circle
     """
-    y, x = torch.meshgrid(torch.arange(size), torch.arange(size))
+    x, y = torch.meshgrid(torch.arange(size), torch.arange(size), indexing='xy')
     center = (size-1) // 2
     if radius is None:
         radius = center

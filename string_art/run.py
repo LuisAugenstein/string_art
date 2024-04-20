@@ -46,16 +46,16 @@ def run(img: np.ndarray, config: Config):
     x = load_picked_edges(config.name_of_the_run, optimizer)
 
     # reconstruct image
-    recon = np.clip(A_high_res @ x, 0, 1)
+    recon = torch.clip(A_high_res @ x.double(), 0, 1)
     recon_image_high = recon.reshape(config.high_res, config.high_res)
-    recon_image_high = np.flipud(recon_image_high.T)
+    recon_image_high = torch.flipud(recon_image_high.T)
     recon_image_low = matlab_imresize(recon_image_high, output_shape=(config.low_res, config.low_res))
 
     if config.invert_output:
         recon_image_high = 1 - recon_image_high
         recon_image_low = 1 - recon_image_low
 
-    rmse_value = np.sqrt(np.mean((img[mask] - recon_image_low[mask])**2))
+    rmse_value = torch.sqrt(torch.mean((img[mask] - recon_image_low[mask])**2))
     print('RMSE: ', rmse_value)
 
     load_error_image(config.name_of_the_run, img, recon_image_low)
