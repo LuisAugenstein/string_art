@@ -1,13 +1,22 @@
 import imageio.v3 as imageio
 from string_art.config import get_config
 import string_art
+from math import pi
 
+"""reproduces the cat example when using only 16 pins."""
 
 img = imageio.imread('data/inputs/cat.png')
 config = get_config()
 config.name_of_the_run = 'test'
+config.invert_input = True
+config.invert_output = True
 config.n_pins = 16
 config.string_thickness = 0.15
+config.frame_diameter = 614.4
+config.pin_side_length = 2
+config.super_sampling_window_width = 8
+config.min_angle = pi / 8
+config.plot_optimization = True
 config.use_cuda = False
 config.loss_type = 'optimized-loss'
 config.n_steps = 5
