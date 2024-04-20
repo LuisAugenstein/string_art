@@ -6,7 +6,7 @@ on:
       - main  
 
 jobs:
-  test:
+  smoke-test:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -23,5 +23,7 @@ jobs:
         pip install -r requirements.txt
         
     - name: Run Python script and check outputs
-      run: python examples/smoke_test.py
+      run: |
+        export PYTHONPATH=.
+        python examples/smoke_test.py
       
