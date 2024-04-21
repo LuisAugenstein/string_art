@@ -18,10 +18,11 @@ class OptimizedLoss:
         """
         img = img.numpy()
         importance_map = importance_map.numpy()
-        A_high_res2 = A_high_res.to_sparse_csc()
-        A_low_res2 = A_low_res.to_sparse_csc()
-        A_high_res = csc_matrix((A_high_res.values(), (A_high_res.indices()[0], A_high_res.indices()[1])), shape=A_high_res.shape)
-        A_low_res = csc_matrix((A_low_res.values(), (A_low_res.indices()[0], A_low_res.indices()[1])), shape=A_low_res.shape)
+
+        A_high_res = A_high_res.to_sparse_csc()
+        A_low_res = A_low_res.to_sparse_csc()
+        self.A_high_res = A_high_res
+        self.A_low_res = A_low_res
 
         # define helper variables
         n_pixels_high_res, n_pixels_low_res = A_high_res.shape[0], A_low_res.shape[0]
@@ -31,25 +32,30 @@ class OptimizedLoss:
         # move data to GPU
         self.b_native_res = img.flatten()
         self.importance_map = importance_map.flatten()
-        self.A_high_res = A_high_res
 
-        n_strings = A_low_res2.shape[1]
-
-        ccol = A_low_res2.ccol_indices()
+        ccol = A_low_res.ccol_indices()
         self.low_res_col_row_values = (
-            torch.cat([j*torch.ones(ccol[j+1]-ccol[j]) for j in range(n_strings)]).int().numpy(),
-            torch.cat([A_low_res2.row_indices()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).int().numpy(),
-            torch.cat([A_low_res2.values()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).numpy()
+            torch.cat([j*torch.ones(ccol[j+1]-ccol[j]) for j in range(self.n_strings)]).int().numpy(),
+            torch.cat([A_low_res.row_indices()[ccol[j]:ccol[j+1]] for j in range(self.n_strings)]).int().numpy(),
+            torch.cat([A_low_res.values()[ccol[j]:ccol[j+1]] for j in range(self.n_strings)]).numpy()
         )
-        ccol = A_high_res2.ccol_indices()
+        ccol = A_high_res.ccol_indices()
         self.high_res_col_row_values = (
-            torch.cat([j*torch.ones(ccol[j+1]-ccol[j]) for j in range(n_strings)]).int().numpy(),
-            torch.cat([A_high_res2.row_indices()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).int().numpy(),
-            torch.cat([A_high_res2.values()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).numpy()
+            torch.cat([j*torch.ones(ccol[j+1]-ccol[j]) for j in range(self.n_strings)]).int().numpy(),
+            torch.cat([A_high_res.row_indices()[ccol[j]:ccol[j+1]] for j in range(self.n_strings)]).int().numpy(),
+            torch.cat([A_high_res.values()[ccol[j]:ccol[j+1]] for j in range(self.n_strings)]).numpy()
         )
 
-        self.high_res_index_to_index_map = self.__get_index_to_index_map(A_high_res)
-        self.low_res_index_to_index_map = self.__get_index_to_index_map(A_low_res)
+        low_res_index_to_index_map2 = self.__get_index_to_index_map(A_low_res)
+        high_res_index_to_index_map2 = self.__get_index_to_index_map(A_high_res)
+        self.high_res_index_to_index_map = csc_matrix(
+            (high_res_index_to_index_map2.values(),
+             (high_res_index_to_index_map2.indices()[0],
+             high_res_index_to_index_map2.indices()[1])), shape=high_res_index_to_index_map2.shape)
+        self.low_res_index_to_index_map = csc_matrix((
+            low_res_index_to_index_map2.values(),
+            (low_res_index_to_index_map2.indices()[0],
+             low_res_index_to_index_map2.indices()[1])), shape=low_res_index_to_index_map2.shape)
 
         self.correspondence_map = csr_matrix(multi_sample_correspondence_map(self.low_res, self.high_res))
 
@@ -93,16 +99,18 @@ class OptimizedLoss:
         f_removing = diff_to_blank_squared_error_sum - diff_to_blank_sum_per_edge + sum_of_squared_errors_per_edge_removing
         return f_adding, f_removing
 
-    def __choose_string_and_update(self, edge_index: int, dif: int) -> None:
-        edge_pixel_indices = self.A_high_res[:, edge_index].indices
-        edge_values = self.A_high_res[:, edge_index].data
+    def __choose_string_and_update(self, edge_index: int, mode: int) -> None:
+        ccol = self.A_high_res.ccol_indices()
+        edge_pixel_indices = self.A_high_res.row_indices()[ccol[edge_index]:ccol[edge_index+1]].int().numpy()
+        edge_values = self.A_high_res.values()[ccol[edge_index]:ccol[edge_index+1]].numpy()
+
         low_res_indices = np.unique(indices_1D_high_res_to_low_res(edge_pixel_indices, self.high_res, self.low_res))
         high_res_indices = indices_1D_low_res_to_high_res(low_res_indices, self.low_res, self.high_res).T.flatten()
 
         pre_update_high_res_recon_unclamped = self.current_recon_unclamped[high_res_indices]
         pre_update_low_res_recon = self.current_recon_native_res[low_res_indices]
 
-        self.current_recon_unclamped[edge_pixel_indices] += dif * edge_values
+        self.current_recon_unclamped[edge_pixel_indices] += mode * edge_values
         self.current_recon[edge_pixel_indices] = np.clip(self.current_recon_unclamped[edge_pixel_indices], 0, 1)
         self.current_recon_native_res[low_res_indices] = self.correspondence_map[low_res_indices, :] @ self.current_recon
 
@@ -132,8 +140,10 @@ class OptimizedLoss:
         Of course all the values of the column for the current string do, but others might do as well."""
 
         sec_mask = self.low_res_index_to_index_map[:, low_res_indices].max(axis=1).A.squeeze().astype(bool)
-        low_res_corresp_edge_indices, low_res_edge_pixel_indices, _ = self.low_res_col_row_values
-        sec_corr_edge_ind, sec_edge_pix_ind = low_res_corresp_edge_indices[sec_mask], low_res_edge_pixel_indices[sec_mask]
+        low_res_string_indices, low_res_pixel_indices, _ = self.low_res_col_row_values
+        sec_corr_edge_ind, sec_edge_pix_ind = low_res_string_indices[sec_mask], low_res_pixel_indices[sec_mask]
+
+        ccol = self.A_low_res.ccol_indices()
 
         self.low_res_re_index_map[low_res_indices] = np.arange(low_res_indices.shape[0])
         re_indices = self.low_res_re_index_map[sec_edge_pix_ind]
@@ -237,18 +247,21 @@ class OptimizedLoss:
         self.f_adding -= failure_pre_update_per_edge_adding - failure_post_update_per_edge_adding
         self.f_removing -= failure_pre_update_per_edge_removing - failure_post_update_per_edge_removing
 
-    def __get_index_to_index_map(self, A: csc_matrix) -> csc_matrix:
+    def __get_index_to_index_map(self, A: torch.Tensor) -> torch.Tensor:
         """
         Parameters
         -
-        A: np.shape([n_pixels, n_strings])    values between 0 and 1 indicate how much a pixel i is darkened if edge j is active.
+        A: torch.sparse_csc([n_pixels, n_strings]) values between 0 and 1 indicate how much a pixel i is darkened if string j is active.
 
         Returns
         -
-        index_to_index_map: np.shape([n_values_in_A, n_pixels]) binary matrix which contains a single 1 in each row (i,edge_pixel_indices[i]) and otherwise 0. 
+        index_to_index_map: torch.sparse([n_values_in_A, n_pixels]) binary matrix which contains a single 1 in each row (i,pixel_indices[i]) and otherwise 0. 
         """
-        n_values_in_A = A.indices.shape[0]
-        data = np.ones(n_values_in_A)
-        rows = np.arange(n_values_in_A)
-        index_to_index_map = csc_matrix((data, (rows, A.indices)), shape=(n_values_in_A, A.shape[0]))
-        return index_to_index_map
+        n_values_in_A = A.row_indices().shape[0]
+        data = torch.ones(n_values_in_A)
+        rows = torch.arange(n_values_in_A)
+        ccol = A.ccol_indices()
+        A_rows = torch.cat([A.row_indices()[ccol[j]:ccol[j+1]] for j in range(A.shape[1])])
+        indices = torch.stack([rows, A_rows])
+        index_to_index_map = torch.sparse_coo_tensor(indices, data, size=(n_values_in_A, A.shape[0]))
+        return index_to_index_map.coalesce()
