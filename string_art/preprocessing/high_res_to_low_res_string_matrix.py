@@ -29,7 +29,8 @@ def high_res_to_low_res_string_matrix(A_high_res: torch.Tensor, low_res: int) ->
 
     A_high_res_csc = A_high_res.to_sparse_csc()
     ccol = A_high_res_csc.ccol_indices()
-    col_data = [(A_high_res_csc.row_indices()[ccol[j]:ccol[j+1]], A_high_res_csc.values()[ccol[j]:ccol[j+1]]) for j in range(n_strings)]
+    col_data = [(A_high_res_csc.row_indices()[ccol[j]:ccol[j+1]],
+                 A_high_res_csc.values()[ccol[j]:ccol[j+1]]) for j in range(n_strings)]
 
     output_col_data = map(col_mapping, col_data)
 

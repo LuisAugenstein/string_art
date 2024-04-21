@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.sparse
 from scipy.sparse import csc_matrix, csr_matrix
 from typing import Literal
 from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
@@ -19,6 +18,8 @@ class OptimizedLoss:
         """
         img = img.numpy()
         importance_map = importance_map.numpy()
+        A_high_res2 = A_high_res.to_sparse_csc()
+        A_low_res2 = A_low_res.to_sparse_csc()
         A_high_res = csc_matrix((A_high_res.values(), (A_high_res.indices()[0], A_high_res.indices()[1])), shape=A_high_res.shape)
         A_low_res = csc_matrix((A_low_res.values(), (A_low_res.indices()[0], A_low_res.indices()[1])), shape=A_low_res.shape)
 
@@ -31,8 +32,22 @@ class OptimizedLoss:
         self.b_native_res = img.flatten()
         self.importance_map = importance_map.flatten()
         self.A_high_res = A_high_res
-        self.low_res_col_row_values = scipy.sparse.find(A_low_res.T)
-        self.high_res_col_row_values = scipy.sparse.find(A_high_res.T)
+
+        n_strings = A_low_res2.shape[1]
+
+        ccol = A_low_res2.ccol_indices()
+        self.low_res_col_row_values = (
+            torch.cat([j*torch.ones(ccol[j+1]-ccol[j]) for j in range(n_strings)]).int().numpy(),
+            torch.cat([A_low_res2.row_indices()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).int().numpy(),
+            torch.cat([A_low_res2.values()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).numpy()
+        )
+        ccol = A_high_res2.ccol_indices()
+        self.high_res_col_row_values = (
+            torch.cat([j*torch.ones(ccol[j+1]-ccol[j]) for j in range(n_strings)]).int().numpy(),
+            torch.cat([A_high_res2.row_indices()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).int().numpy(),
+            torch.cat([A_high_res2.values()[ccol[j]:ccol[j+1]] for j in range(n_strings)]).numpy()
+        )
+
         self.high_res_index_to_index_map = self.__get_index_to_index_map(A_high_res)
         self.low_res_index_to_index_map = self.__get_index_to_index_map(A_low_res)
 
