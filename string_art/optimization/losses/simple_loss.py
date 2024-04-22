@@ -1,5 +1,5 @@
 from typing import Literal
-from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
+from string_art.optimization.losses.high_res_to_low_res_matrix import high_res_to_low_res_matrix
 import torch
 import numpy as np
 
@@ -20,7 +20,7 @@ class SimpleLoss:
         self.b_native_res = img.flatten()  # [low_res**2]
         self.importance_map = importance_map.flatten()  # [low_res**2]
         self.A_high_res = A_high_res.to_sparse_csr()
-        self.B = multi_sample_correspondence_map(low_res, high_res).to_sparse_csr()  # csr_matrix ?
+        self.B = high_res_to_low_res_matrix(low_res, high_res).to_sparse_csr()  # csr_matrix ?
         self.__x = torch.zeros(n_strings)
 
     def update(self, i_next_string: int, mode: Literal['add', 'remove'] = 'add') -> None:

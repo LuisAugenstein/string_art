@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
 from typing import Literal
-from string_art.optimization.losses.multi_sample_correspondence_map import multi_sample_correspondence_map
+from string_art.optimization.losses.high_res_to_low_res_matrix import high_res_to_low_res_matrix
 from string_art.transformations import indices_1D_high_res_to_low_res, indices_1D_low_res_to_high_res, indices_1D_to_2D, indices_2D_to_1D
 import torch
 
@@ -57,7 +57,8 @@ class OptimizedLoss:
             (low_res_index_to_index_map2.indices()[0],
              low_res_index_to_index_map2.indices()[1])), shape=low_res_index_to_index_map2.shape)
 
-        self.correspondence_map = csr_matrix(multi_sample_correspondence_map(self.low_res, self.high_res))
+        h2l = high_res_to_low_res_matrix(self.low_res, self.high_res)
+        self.h2l = csr_matrix((h2l.values(), (h2l.indices()[0], h2l.indices()[1])), shape=(n_pixels_low_res, n_pixels_high_res))
 
         self.current_recon = np.zeros(n_pixels_high_res)
         self.current_recon_unclamped = np.zeros(n_pixels_high_res)
@@ -112,7 +113,7 @@ class OptimizedLoss:
 
         self.current_recon_unclamped[edge_pixel_indices] += mode * edge_values
         self.current_recon[edge_pixel_indices] = np.clip(self.current_recon_unclamped[edge_pixel_indices], 0, 1)
-        self.current_recon_native_res[low_res_indices] = self.correspondence_map[low_res_indices, :] @ self.current_recon
+        self.current_recon_native_res[low_res_indices] = self.h2l[low_res_indices, :] @ self.current_recon
 
         pre_update_errors = self.diff_to_blank_squared_errors[low_res_indices]
         self.diff_to_blank_squared_error_sum -= np.sum(pre_update_errors)

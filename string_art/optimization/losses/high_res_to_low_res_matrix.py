@@ -1,8 +1,7 @@
 import torch
-from scipy.sparse import csr_matrix
 
 
-def multi_sample_correspondence_map(low_res: int, high_res: int) -> torch.Tensor:
+def high_res_to_low_res_matrix(low_res: int, high_res: int) -> torch.Tensor:
     """
     matrix that scales a flattened high_res x high_res image down to a low_res x low_res image by averaging the pixels.
 
@@ -19,13 +18,12 @@ def multi_sample_correspondence_map(low_res: int, high_res: int) -> torch.Tensor
     correspondence_map: torch.shape([low_res**2, high_res**2])
     """
     super_sampling_factor = high_res // low_res
-    n_pixels = high_res**2
-    n_correspondence_values = low_res**2
+    n_pixels_high_res = high_res**2
+    n_pixels_low_res = low_res**2
 
-    rows = torch.arange(n_correspondence_values).reshape(low_res, low_res)
+    rows = torch.arange(n_pixels_low_res).reshape(low_res, low_res)
     rows = rows.repeat_interleave(super_sampling_factor, dim=0).repeat_interleave(super_sampling_factor, dim=1).flatten()
-    cols = torch.arange(n_pixels)
-    values = torch.ones(n_pixels) / (super_sampling_factor ** 2)
+    cols = torch.arange(n_pixels_high_res)
+    values = torch.ones(n_pixels_high_res) / (super_sampling_factor ** 2)
     indices = torch.stack([rows, cols])
-    # return torch.sparse_coo_tensor(indices, values, size=(n_correspondence_values, n_pixels))
-    return csr_matrix((values.numpy(), (rows.numpy(), cols.numpy())), shape=(n_correspondence_values, n_pixels))
+    return torch.sparse_coo_tensor(indices, values, size=(n_pixels_low_res, n_pixels_high_res)).coalesce()
