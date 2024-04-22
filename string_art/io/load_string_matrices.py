@@ -1,5 +1,6 @@
 import os
-from string_art.preprocessing import precompute_string_matrix, high_res_to_low_res_string_matrix
+from string_art.optimization.losses.high_res_to_low_res_matrix import high_res_to_low_res_matrix
+from string_art.preprocessing import precompute_string_matrix
 from string_art.io.root_path import root_path
 from string_art.io.mkdir import mkdir
 import torch
@@ -32,7 +33,8 @@ def load_string_matrices(n_pins: int, pin_side_length: float, string_thickness: 
     if os.path.exists(low_res_path):
         A_low_res = torch.load(low_res_path)
     else:
-        A_low_res = high_res_to_low_res_string_matrix(A_high_res, low_res)
+        h2l = high_res_to_low_res_matrix(low_res, high_res)
+        A_low_res = h2l @ A_high_res
         print('saving A_low_res to disk...')
         torch.save(A_low_res, low_res_path)
     A_low_res = A_low_res.coalesce()
