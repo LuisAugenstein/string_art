@@ -48,6 +48,7 @@ class OptimizedLoss:
 
         low_res_index_to_index_map2 = self.__get_index_to_index_map(A_low_res)
         high_res_index_to_index_map2 = self.__get_index_to_index_map(A_high_res)
+        self.high_res_index_to_index_map2 = high_res_index_to_index_map2
         self.high_res_index_to_index_map = csc_matrix(
             (high_res_index_to_index_map2.values(),
              (high_res_index_to_index_map2.indices()[0],
@@ -136,7 +137,8 @@ class OptimizedLoss:
         self.f_adding -= pre - post
         self.f_removing -= pre - post
         high_res_sec_mask = self.high_res_index_to_index_map[:, high_res_indices].max(axis=1).A.squeeze().astype(bool)
-        # high_res_sec_mask = np.max(self.high_res_index_to_index_map[:, high_res_indices], axis=1).A.squeeze().astype(bool)
+        # high_res_sec_mask2 = self.high_res_index_to_index_map2[:, high_res_indices].max(axis=1)
+
         """which values of A_high_res color a pixel of the current string. 
         Of course all the values of the column for the current string do, but others might do as well."""
 

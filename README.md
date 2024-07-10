@@ -1,3 +1,11 @@
+# Assumptions / Definitions
+
+depending on the context we represent an edge either by its two pin_indices or its two pins itself.
+edges_index_based: [N_strings, 2]    used anywhere else
+edges_pin_based: [N_strings, 2, 2]   required for computing the string_matrix
+
+string_matrix: [IMAGE_SIZE**2, N_strings]
+
 # String Art
 This repository aims to reproduce the results of ["String Art: Towards Computational Fabrication of String Images"](https://www.geometrie.tuwien.ac.at/geom/ig/publications/stringart/stringart.pdf). The original [code](https://github.com/Exception1984/StringArt) was implemented in Matlab. This project restructures the code and implements the proposed algorithm in python to make it more accessible. 
 

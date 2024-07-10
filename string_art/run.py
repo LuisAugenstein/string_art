@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 from string_art.io import load_picked_edges, load_string_matrices, load_error_image
 from string_art.transformations import matlab_imresize
 from string_art.config import Config
-from string_art.preprocessing import create_circular_mask, preprocess_image
+from string_art.preprocessing import preprocess_image
+from string_art.image import create_circular_mask
 from string_art.optimization import LoggingCallback, PlottingCallback, IterativeGreedyOptimizer, StringSelection, OptimizedLoss, SimpleLoss
 import torch
 from time import time

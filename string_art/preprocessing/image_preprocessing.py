@@ -21,17 +21,3 @@ def preprocess_image(img: torch.Tensor, resolution: int, invert: bool) -> torch.
     if invert:
         img = 1 - img
     return torch.flipud(img)
-
-
-def create_circular_mask(size: int, radius: float = None) -> torch.Tensor:
-    """
-    Returns
-    -
-    mask: torch.shape([size, size], dtype=torch.bool) mask with True values inside the circle and False values outside the circle
-    """
-    x, y = torch.meshgrid(torch.arange(size), torch.arange(size), indexing='xy')
-    center = (size-1) // 2
-    if radius is None:
-        radius = center
-    mask = (x - center) ** 2 + (y - center) ** 2 <= radius ** 2
-    return mask
