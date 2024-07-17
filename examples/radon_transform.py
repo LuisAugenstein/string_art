@@ -13,7 +13,7 @@ N_RADON_ANGLES = 512  # typically set to same as IMAGE_SIZE
 STRING_WIDTH = 0.25
 STRING_COLOR = 1
 N_PINS = 512
-TARGET_IMAGE_PATH = 'data/inputs/cat.png'
+TARGET_IMAGE_PATH = 'data/inputs/cat_400.png'
 N_STEPS = 10000
 
 # setup pins and edges in the different necessary representations
@@ -48,8 +48,8 @@ ax_img.imshow(1-img, cmap='gray',  vmin=0, vmax=1, extent=(0, IMAGE_SIZE, IMAGE_
 reconstruction_plot = ax_reconstruction.imshow(torch.zeros(IMAGE_SIZE, IMAGE_SIZE), cmap='gray', vmin=0, vmax=1)
 ax_reconstruction.scatter(pins_point_based[:, 1].numpy(), pins_point_based[:, 0].numpy(), c=[[0.8, 0.5, 0.2]], s=5)
 available_lines_img = torch.zeros(IMAGE_SIZE, IMAGE_SIZE)
-img_radon[~valid_radon_parameters_mask] = 0
-radon_plot = ax_radon.imshow(img_radon, cmap='gray', extent=(0, 180, IMAGE_SIZE, 0), aspect=180/IMAGE_SIZE)
+# img_radon[~valid_radon_parameters_mask] = 0
+radon_plot = ax_radon.imshow(img_radon, cmap='hot', extent=(0, 180, IMAGE_SIZE, 0), aspect=180/IMAGE_SIZE)
 
 # optimize string image
 string_img = torch.zeros(IMAGE_SIZE, IMAGE_SIZE)

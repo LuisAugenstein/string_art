@@ -23,76 +23,75 @@ def point_based(points: torch.Tensor, edges_index_based: torch.Tensor) -> torch.
     """
     Parameters
     -
-    positions: [N, 2]          N two-dimensional points
-    edges_index_based: [M, 2]  M edges defined as indices of the points tensor, e.g., point_index, point_index2 = edge_indices[i]
+    positions: [N_pins, 2]             N_pins two-dimensional points
+    edges_index_based: [N_strings, 2]  N_strings edges each defined by ids that can be interpreted as indices of the points tensor, e.g., point_index, point_index2 = edge_indices[i]
 
     Returns
     -
-    edges_point_based: [M, 2, 2] M edges defined by two points p1, p2 = edges[i]
+    edges_point_based: [N_strings, 2, 2] N_strings edges each defined by two points p1, p2 = edges[i]
     """
     return points[edges_index_based]  # [N_strings, 2, 2]
 
 
-def angle_based(pin_angles: torch.Tensor, edges_index_based: torch.Tensor) -> torch.Tensor:
+def angle_based(pins_angle_based: torch.Tensor, edges_index_based: torch.Tensor) -> torch.Tensor:
     """
     Parameters
     -
-    pin_angles: [N]             angles of the pins
-    edges_index_based: [M, 2]  M edges defined as indices of the points tensor, e.g., point_index, point_index2 = edge_indices[i]
+    pin_angles: [N_pins]               N_pins angles of the pins
+    edges_index_based: [N_strings, 2]  N_strings edges each defined by ids that can be interpreted as indices of the points tensor, e.g., point_index, point_index2 = edge_indices[i]
 
     Returns
     -
-    edges_angle_based: [M, 2] M edges defined by two angles psi1, psi2 = edges[i]
+    edges_angle_based: [N_strings, 2] N_strings edges each defined by two angles psi1, psi2 = edges[i]
     """
-    return pin_angles[edges_index_based]  # [N_strings, 2]
+    return pins_angle_based[edges_index_based]  # [N_strings, 2]
 
 
-def radon_index_based(edges_angle_based: torch.Tensor, alpha_domain: torch.Tensor, image_size: int) -> torch.Tensor:
+def radon_parameter_based(edges_angle_based: torch.Tensor) -> torch.Tensor:
     """
     Parameters
     -
-    edges_angle_based: [N, 2]  N edges each defined by two angles psi1, psi2 = edges[i]
-    alpha_domain: [M]          M possible values for radon angle alpha
-    image_size: int            width/height of the square target image
+    edges_angle_based: [N_strings, 2]  N edges each defined by two angles psi1, psi2 = edges[i]
 
     Returns
     -
-    edges_radon_parameter_based: [N, 2] N edges each defined by the domain indices of their two radon parameters s_index, alpha_index = edges[i]
-                                 s_index goes from 0 to image_size-1, alpha_index from 0 to M-1
+    edges_radon_parameter_based: [N_strings, 2]  N edges each defined by their two radon parameters s, alpha = edges[i]
     """
-    radius = image_size//2  # [1]
-    psi_0, psi_1 = edges_angle_based[:, 0], edges_angle_based[:, 1]  # [N], [N]
-    mean_angle = (psi_0 + psi_1) / 2  # [N]
-    mean_angle[(psi_1 - psi_0) > torch.pi] -= torch.pi
-    alpha_continuous = mean_angle % (2*torch.pi)  # [N]
-    offset = torch.abs(torch.exp(edges_angle_based * 1j).mean(dim=1)) * radius  # [N]
+    def _mean_angle(psi_0: torch.Tensor, psi_1: torch.Tensor) -> torch.Tensor:
+        """Computes the mean angle between psi_0 and psi_1 in the range [0, 2*pi)"""
+        mean_angle = (psi_0 + psi_1) / 2  # [N]
+        mean_angle[(psi_1 - psi_0) > torch.pi] -= torch.pi  # [N]
+        return mean_angle % (2*torch.pi)  # [N]
 
-    s_continuous = radius * torch.ones_like(alpha_continuous)  # [N]
-    mask = (alpha_continuous < torch.pi)  # [N]
-    s_continuous[mask] = s_continuous[mask] + offset[mask]  # [N]
-    s_continuous[~mask] = s_continuous[~mask] - offset[~mask]  # [N]
-    alpha_continuous = alpha_continuous % torch.pi  # [N]
-
-    alpha_diffs = torch.abs(alpha_continuous.unsqueeze(1) - alpha_domain.unsqueeze(0))  # [N, M]
-    alpha_indices = torch.argmin(alpha_diffs, dim=1)  # [N]
-    s_indices = torch.clamp(torch.round(s_continuous).to(torch.int), 0, image_size-1)  # [N]
-    return torch.stack([s_indices, alpha_indices], dim=1)  # [N, 2]
+    psi_0, psi_1 = edges_angle_based[:, 0], edges_angle_based[:, 1]  # [N_strings], [N_strings]
+    mean_angle = _mean_angle(psi_0, psi_1)  # [N_strings]
+    s = torch.abs(torch.exp(edges_angle_based * 1j).mean(dim=1))  # [N]
+    s[mean_angle >= torch.pi] *= -1  # [N]
+    alpha = mean_angle % torch.pi  # [N]
+    return torch.stack([s, alpha], dim=1)
 
 
-def radon_parameter_based(edges_radon_index_based: torch.Tensor, alpha_domain: torch.Tensor) -> torch.Tensor:
+def radon_index_based(edges_radon_parameter_based: torch.Tensor, s_domain, alpha_domain: torch.Tensor) -> torch.Tensor:
     """
     Parameters
     -
-    edges_radon_index_based: [N, 2]  N edges each defined by the domain indices of their two radon parameters s_index, alpha_index = edges[i]
-    alpha_domain: [M]                M possible values for radon angle alpha
+    edges_radon_parameter_based: [N_strings, 2]  N edges each defined their two radon parameters s, alpha = edges[i]
+    s_domain: [N_s]                    possible values for the radon parameter s (distance to center) in [-1, 1]
+    alpha_domain: [N_alpha]            possible values for the radon parameter alpha (angle) in [0, pi)
 
     Returns
     -
-    edges_radon_parameter_based: [N, 2]  N edges each defined by their two radon parameters s, alpha = edges[i]
+    edges_radon_index_based: [N_strings, 2] N edges each defined by the domain indices of their two radon parameters s_index, alpha_index = edges[i]
+                             s_index from 0 to N_s-1, alpha_index from 0 to N_alpha-1
     """
-    alpha = alpha_domain[edges_radon_index_based[:, 1]]  # [N]
-    s = edges_radon_index_based[: 0]
-    return torch.stack([s, alpha], dim=1)  # [N, 2]
+    def _find_nearest_domain_index(values: torch.Tensor, domain: torch.Tensor) -> torch.Tensor:
+        diffs = torch.abs(values.unsqueeze(1) - domain.unsqueeze(0))  # [N_values, N_domain]
+        return torch.argmin(diffs, dim=1)  # [N_values]
+
+    s, alpha = edges_radon_parameter_based.T  # [N_strings], [N_strings]
+    s_indices = _find_nearest_domain_index(s, s_domain)  # [N_strings]
+    alpha_indices = _find_nearest_domain_index(alpha, alpha_domain)  # [N_strings]
+    return torch.stack([s_indices, alpha_indices], dim=1)  # [N_strings, 2]
 
 
 def distance_points_edge(points: torch.Tensor, edge: torch.Tensor) -> torch.Tensor:

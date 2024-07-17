@@ -21,7 +21,8 @@ TARGET_IMAGE_PATH = 'data/inputs/smiley.png'
 # image[~circular_mask] = 1.
 # image = 1 - image
 
-pin_positions = pins.point_based(N_PINS, IMAGE_SIZE)
+pins_angle_based = pins.angle_based(N_PINS)
+pin_positions = pins.point_based(pins_angle_based, IMAGE_SIZE)
 edges_index_based = edges.index_based(N_PINS)
 edges_point_based = edges.point_based(pin_positions, edges_index_based)
 edge = edges_point_based[16]
