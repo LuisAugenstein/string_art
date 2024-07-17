@@ -14,7 +14,7 @@ torch.set_default_dtype(torch.float64)
 @dataclass
 class StringReconstructionRadonConfig:
     n_pins: int = 300
-    n_radon_angles: int = 150
+    n_radon_angles: int = 300
     n_max_steps: int = 6000
     residual_threshold: float = 0.01
     line_darkness: float = 0.018
@@ -79,7 +79,7 @@ def string_reconstruction_radon(img: np.ndarray, config: StringReconstructionRad
     img_radon = radon(img, alpha_deg)
     img_radon = img_radon / IMAGE_SIZE
 
-    ALPHA, S = np.meshgrid(alpha_domain, s_domain)  # [N_RADON_ANGLES, IMAGE_SIZE]
+    _, S = np.meshgrid(alpha_domain, s_domain)  # [N_RADON_ANGLES, IMAGE_SIZE]
     line_lengths = 2 * np.sqrt(1 - S ** 2)
     zero_length_mask = line_lengths == 0
     # we are intereseted in the radon value per unit length
@@ -96,7 +96,8 @@ def string_reconstruction_radon(img: np.ndarray, config: StringReconstructionRad
             return
 
         s, alpha = s_domain[s_index], alpha_domain[alpha_index]
-        p_line_theory = analytical_radon_line(alpha, s, ALPHA, S, line_lengths, config.t_start, config.t_end, config.line_darkness, config.p_min)
+        p_line_theory = analytical_radon_line(alpha, s, alpha_domain, s_domain, line_lengths, config.t_start,
+                                              config.t_end, config.line_darkness, config.p_min)
         img_radon = img_radon - p_line_theory
         img_radon[s_index, alpha_index] = 0
 

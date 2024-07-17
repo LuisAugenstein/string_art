@@ -1,14 +1,15 @@
 import numpy as np
 
 
-def analytical_radon_line(alpha0, s0, ALPHA, S, L, tstart, tend, d, p_min):
-    ALPHA_diff_alpha0 = ALPHA - alpha0
+def analytical_radon_line(alpha: float, s: float, alpha_domain, s_domain, L, tstart, tend, d, p_min):
+    ALPHA, S = np.meshgrid(alpha_domain, s_domain)
+    ALPHA_diff_alpha0 = ALPHA - alpha
     sin_ALPHA_alpha0 = np.sin(ALPHA_diff_alpha0)
     sin_ALPHA_alpha0_squared = sin_ALPHA_alpha0 ** 2
 
     n = 4
     t = np.linspace(tstart, tend, n)
-    nominator = (S ** 2 + s0 ** 2 - 2 * S * s0 * np.cos(ALPHA_diff_alpha0))
+    nominator = (S ** 2 + s ** 2 - 2 * S * s * np.cos(ALPHA_diff_alpha0))
     p_regionfuns = [nominator / (sin_ALPHA_alpha0_squared + t_i) - 1 for t_i in t]
 
     mask = np.zeros_like(ALPHA)

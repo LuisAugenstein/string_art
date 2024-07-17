@@ -14,7 +14,11 @@ IMAGE_SIZE = 400
 TARGET_IMAGE_PATH = f'data/inputs/cat_400.png'
 LINE_TRANSPARENCY = 0.06
 RENDER_VIDEO = False
-config = StringReconstructionRadonConfig(n_max_steps=2000)
+config = StringReconstructionRadonConfig(
+    n_max_steps=5000,
+    n_pins=150,
+    n_radon_angles=300
+)
 
 # Convert Image to black and white
 img = Image.open(TARGET_IMAGE_PATH)
@@ -31,7 +35,8 @@ class MemoryCallback:
 
     def __call__(self, config: StringReconstructionRadonCallbackConfig) -> None:
         s_index, alpha_index = config.reconstructed_line_radon_index_based
-        print(config.step+1, s_index, alpha_index, config.residual)
+        if (config.step+1) % 10 == 0:
+            print(config.step+1, s_index, alpha_index, config.residual)
 
         s, alpha = config.reconstructed_line_radon_parameter_based
         psi_1, psi_2 = alpha - np.arccos(s), alpha + np.arccos(s)
@@ -91,7 +96,7 @@ if RENDER_VIDEO:
 else:
     for i in range(config.n_max_steps):
         animate(i)
-        if (i+1) % 100 == 0:
+        if (i+1) % 10 == 0:
             plt.draw()
             plt.pause(0.0001)
     plt.show()
