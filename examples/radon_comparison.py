@@ -9,13 +9,13 @@ from string_art.string_reconstruction_radon import string_reconstruction_radon, 
 torch.set_default_dtype(torch.float64)
 
 configs = [
-    StringReconstructionRadonConfig(n_pins=500, n_radon_angles=300, n_max_steps=5000),
-    StringReconstructionRadonConfig(n_pins=600, n_radon_angles=300, n_max_steps=5000),
-    StringReconstructionRadonConfig(n_pins=750, n_radon_angles=300, n_max_steps=5000),
+    StringReconstructionRadonConfig(n_pins=500, n_radon_angles=500, n_max_steps=5000),
+    # StringReconstructionRadonConfig(n_pins=600, n_radon_angles=600, n_max_steps=5000),
+    # StringReconstructionRadonConfig(n_pins=750, n_radon_angles=700, n_max_steps=5000),
 ]
 
 IMAGE_SIZE = 400
-TARGET_IMAGE_PATH = f'data/inputs/cat_400.png'
+TARGET_IMAGE_PATH = f'data/inputs/TNG4.png'
 LINE_TRANSPARENCY = 0.06
 
 # Convert Image to black and white

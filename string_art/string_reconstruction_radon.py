@@ -6,6 +6,7 @@ from skimage.transform import radon
 from string_art.analytical_radon_line import analytical_radon_line
 import string_art.pins as pins
 import string_art.edges as edges
+from string_art.utils import create_circular_mask
 
 
 torch.set_default_dtype(torch.float64)
@@ -51,11 +52,7 @@ def string_reconstruction_radon(img: np.ndarray, config: StringReconstructionRad
     callback: Custom callback function called in each iteration. Might be used for plotting or logging
     """
     IMAGE_SIZE = img.shape[0]
-    # Image crop
-    x = np.linspace(-1, 1, IMAGE_SIZE)
-    y = np.linspace(-1, 1, IMAGE_SIZE)
-    X, Y = np.meshgrid(x, y)
-    img[(X ** 2 + Y ** 2) + 0.01 > 1] = 0
+    img[create_circular_mask(IMAGE_SIZE)] = 0
 
     # setup pins and edges in the different necessary representations
     pins_angle_based = pins.angle_based(config.n_pins)  # [N_pins]
@@ -86,7 +83,7 @@ def string_reconstruction_radon(img: np.ndarray, config: StringReconstructionRad
     img_radon[~zero_length_mask] = img_radon[~zero_length_mask] / line_lengths[~zero_length_mask]
     img_radon[zero_length_mask] = 0
     # remove all lines that cannot be spanned between two pins
-    img_radon[~valid_radon_parameters_mask] = 0
+    # img_radon[~valid_radon_parameters_mask] = 0
 
     for step in range(config.n_max_steps):
         s_index, alpha_index = np.unravel_index(np.argmax(img_radon), img_radon.shape)

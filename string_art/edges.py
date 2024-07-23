@@ -117,7 +117,7 @@ def get_image(edge: torch.Tensor, line_profile: LineProfile, image_size: int) ->
     """
     Parameters
     -
-    edges: [2, 2]  edge defined by two points p_start, p_end = edges[i]
+    edges: [2, 2]  edge defined by two points p_start, p_end = edges[i] that represent points on the unit circle
     line_profile:  function determininig the pixel intensity based on its distance to the edge
     image_size:    width/height of the square target image
 
@@ -125,8 +125,8 @@ def get_image(edge: torch.Tensor, line_profile: LineProfile, image_size: int) ->
     -
     edge_image: [image_size, image_size] image of the edge. Most pixels are 0.
     """
-    rows, cols = torch.meshgrid(torch.arange(image_size), torch.arange(image_size), indexing='ij')  # [image_size, image_size]
-    grid = torch.stack([rows, cols], dim=-1).reshape(-1, 2).to(edge.dtype)  # [HW, 2]
-    distances = distance_points_edge(grid, edge)  # [HW]
+    row, col = torch.meshgrid(torch.linspace(-1, 1, image_size), torch.linspace(-1, 1, image_size))  # [image_size, image_size]
+    grid = torch.stack([col, -row], dim=-1).reshape(-1, 2).to(edge.dtype)  # [image_size**2, 2]
+    distances = distance_points_edge(grid, edge)  # [image_size**2]
     edge_image = line_profile(distances).reshape(image_size, image_size)  # [image_size, image_size]
     return edge_image

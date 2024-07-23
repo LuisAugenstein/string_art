@@ -15,7 +15,7 @@ TARGET_IMAGE_PATH = f'data/inputs/cat_400.png'
 LINE_TRANSPARENCY = 0.06
 RENDER_VIDEO = False
 config = StringReconstructionRadonConfig(
-    n_max_steps=5000,
+    n_max_steps=1000,
     n_pins=150,
     n_radon_angles=300
 )
