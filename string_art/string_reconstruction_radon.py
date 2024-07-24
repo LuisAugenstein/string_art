@@ -40,6 +40,7 @@ class StringReconstructionRadonCallbackConfig:
 
 class StringReconstructionRadonCallback(Protocol):
     def __call__(self, config: StringReconstructionRadonCallbackConfig) -> None:
+        """called after each iteration of the stringart reconstruction radon algorithm"""
         ...
 
 
@@ -83,7 +84,7 @@ def string_reconstruction_radon(img: np.ndarray, config: StringReconstructionRad
     img_radon[~zero_length_mask] = img_radon[~zero_length_mask] / line_lengths[~zero_length_mask]
     img_radon[zero_length_mask] = 0
     # remove all lines that cannot be spanned between two pins
-    # img_radon[~valid_radon_parameters_mask] = 0
+    img_radon[~valid_radon_parameters_mask] = 0
 
     for step in range(config.n_max_steps):
         s_index, alpha_index = np.unravel_index(np.argmax(img_radon), img_radon.shape)
