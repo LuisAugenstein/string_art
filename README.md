@@ -1,5 +1,18 @@
 # String Art
-This repository aims to reconstruct images by spanning a string through pins that lie on the perimeter of a circle. 
+This repository aims to reconstruct images by spanning a string through pins that lie on the perimeter of a circle. Different algorithms are benchmarked against each other.
+
+## Setup
+```bash
+# Install python
+curl https://pyenv.run | bash
+pyenv install --list # search for the most recent version, e.g., 3.12.5 at the time of writing
+pyenv install 3.12.5
+pyenv global 3.12.5
+
+# install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync
+```
 
 # Getting Started
 The `examples/` directory contains executable scripts to get familiar with the usage of this library.

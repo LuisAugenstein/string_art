@@ -4,3 +4,4 @@ __pycache__
 data/outputs
 data/string_matrices/
 outputs/*
+*.egg-info/
