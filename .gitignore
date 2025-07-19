@@ -1,7 +1,5 @@
 .vscode
 .pytest_cache
 __pycache__
-data/outputs
-data/string_matrices/
-outputs/*
+data/stores
 *.egg-info/
