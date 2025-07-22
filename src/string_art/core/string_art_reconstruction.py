@@ -1,9 +1,10 @@
 import pickle
 from dataclasses import dataclass, field
+from string_art.edges import EdgesAngleBased
 
 @dataclass
 class StringArtReconstruction:
-    strings: list = field(default_factory=list)
+    strings: EdgesAngleBased = None
 
     def save(self, filepath: str) -> None:
         with open(filepath, 'wb') as f:

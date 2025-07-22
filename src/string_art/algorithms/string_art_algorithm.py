@@ -14,5 +14,5 @@ class StringArtAlgorithm(ABC):
         self.store = store
 
     @abstractmethod
-    def generate(image: torch.Tensor) -> StringArtReconstruction:
+    def generate() -> StringArtReconstruction:
         ...

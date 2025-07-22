@@ -23,7 +23,7 @@ edges_angle_based = edges.angle_based(pins_angle_based, edges_index_based)  # [N
 radon_angles_radians = torch.arange(N_RADON_ANGLES) * torch.pi / N_RADON_ANGLES  # [N_RADON_ANGLES]
 radon_angles_degrees = torch.arange(N_RADON_ANGLES) * 180 / N_RADON_ANGLES
 circular_mask = create_circular_mask(IMAGE_SIZE, radius=IMAGE_SIZE//2 - 5)  # [IMAGE_SIZE, IMAGE_SIZE]
-s_indices, alpha_indices = edges.radon_index_based(edges_angle_based, radon_angles_radians, IMAGE_SIZE).T  # [N_strings] [N_strings]
+s_indices, alpha_indices = edges.radon_parameter_to_radon_index_based(edges_angle_based, radon_angles_radians, IMAGE_SIZE).T  # [N_strings] [N_strings]
 
 edge_index = 22
 edge_image = edges.get_image(edges_point_based[edge_index], line_profile.trapez(STRING_WIDTH, STRING_COLOR), IMAGE_SIZE)

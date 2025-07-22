@@ -1,1 +1,2 @@
 from .string_art_visualizer import StringArtVisualizer
+from .default_visualizer import DefaultVisualizer

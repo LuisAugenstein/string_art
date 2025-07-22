@@ -62,8 +62,8 @@ def string_reconstruction_radon(img: np.ndarray, config: StringReconstructionRad
     alpha_domain = torch.arange(config.n_radon_angles) * torch.pi / config.n_radon_angles  # [N_RADON_ANGLES]
     # alpha_domain_degrees = torch.arange(N_RADON_ANGLES) * 180 / N_RADON_ANGLES # TODO: check why linspace works but arange doesn't
     s_domain = torch.linspace(-1, 1, IMAGE_SIZE)
-    edges_radon_parameter_based = edges.radon_parameter_based(edges_angle_based)  # [N_strings, 2]
-    s_indices, alpha_indices = edges.radon_index_based(edges_radon_parameter_based, s_domain, alpha_domain).T  # [N_strings] [N_strings]
+    edges_radon_parameter_based = edges.angle_to_radon_parameter_based(edges_angle_based)  # [N_strings, 2]
+    s_indices, alpha_indices = edges.radon_parameter_to_radon_index_based(edges_radon_parameter_based, s_domain, alpha_domain).T  # [N_strings] [N_strings]
     valid_radon_parameters_mask = torch.zeros(IMAGE_SIZE, config.n_radon_angles, dtype=torch.bool)
     valid_radon_parameters_mask[s_indices, alpha_indices] = True
     # radon_beam_lengths = 2 * ((torch.sqrt(1 - (1 - torch.linspace(0, 2, IMAGE_SIZE)) ** 2) *

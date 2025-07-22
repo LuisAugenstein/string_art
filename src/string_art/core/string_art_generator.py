@@ -8,8 +8,8 @@ from string_art.core.string_art_config import StringArtConfig
 from string_art.core.string_art_reconstruction import StringArtReconstruction
 from string_art.core.string_art_store import StringArtStore
 from string_art.algorithms import StringArtAlgorithm
-from string_art.algorithms.naive import NaiveAlgorithmConfig
-from string_art.algorithms.naive import NaiveAlgorithm
+from string_art.algorithms.naive import NaiveAlgorithmConfig, NaiveAlgorithm
+from string_art.algorithms.radon import RadonAlgorithmConfig, RadonAlgorithm
 from string_art.visualization import StringArtVisualizer
 from string_art.visualization.default_visualizer import DefaultVisualizer
 
@@ -17,9 +17,6 @@ from string_art.visualization.default_visualizer import DefaultVisualizer
 class StringArtGeneratorConfig(Protocol):
     image_width: int
     """resolution of the quadratic input image in pixels."""
-
-    n_strings: int
-    """maximum number of strings to use for the reconstruction."""
 
 class StringArtGenerator:
     store: StringArtStore
@@ -57,26 +54,28 @@ class StringArtGenerator:
         return transform(img)
     
     def add_visualizer(self, visualizer: StringArtVisualizer | None = None) -> None:
-        if visualizer is None:
-            self.store.register(DefaultVisualizer(self.config))
+        self.store.register(DefaultVisualizer(self.config, self) if visualizer is None else visualizer)
 
     def generate(self, image: torch.Tensor) -> StringArtReconstruction:
-        precomputed_reconstruction = self.store.load(image)
+        self.store.image = image
+        precomputed_reconstruction = self.store.load()
         if precomputed_reconstruction is not None:
             return precomputed_reconstruction
-        
+
         print('Start generating string art reconstruction')
         start = time.time()
-        reconstruction = self.algorithm.generate(image)
+        reconstruction = self.algorithm.generate()
         print(f'Completed after {time.time()-start} seconds')
 
-        self.store.save(image, reconstruction)
+        self.store.save()
         return reconstruction
 
     def _get_algorithm(self, config: StringArtConfig, store: StringArtStore) -> StringArtAlgorithm:
         match config:
             case NaiveAlgorithmConfig():
                 return NaiveAlgorithm(config, store)
+            case RadonAlgorithmConfig():
+                return RadonAlgorithm(config, store)
             case _:
                 raise ValueError(f"Unknown algorithm config: {config}")
 

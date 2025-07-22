@@ -1,3 +1,4 @@
+from functools import cached_property
 import os
 import yaml
 import torch
@@ -13,43 +14,45 @@ class StringArtStore:
     _IMAGE_FILE_NAME = 'image.pt'
     _RECONSTRUCTION_FILE_NAME = 'reconstruction.pkl'
     _CONFIG_FILE_NAME = 'config.yaml'
+    
+    image: torch.Tensor
+    reconstruction: StringArtReconstruction
+
+    @cached_property
+    def store_path(self) -> str:
+        hash = self._generate_config_hash(self.config, self.image)
+        return f'{self.config.store_path}/{hash}'
 
     def __init__(self, config: StringArtConfig):
         self.config = config
         
-    def load(self, image: torch.Tensor) -> StringArtReconstruction | None:
-        if not os.path.exists(self.config.store_path):
-            os.mkdir(self.config.store_path)
-        
-        store_path = self.get_store_path(image)
+    def load(self) -> StringArtReconstruction | None:
+        os.makedirs(self.store_path, exist_ok=True)
 
-        if os.path.exists(store_path):
-            print(f"Load existing reconstruction from '{store_path}'\nconfig: {self.config}")
-            return StringArtReconstruction.load(f'{store_path}/{self._RECONSTRUCTION_FILE_NAME}')
+        if os.path.exists(f'{self.store_path}/{self._RECONSTRUCTION_FILE_NAME}'):
+            print(f"Load existing reconstruction from '{self.store_path}'\nconfig: {self.config}")
+            self.reconstruction = StringArtReconstruction.load(f'{self.store_path}/{self._RECONSTRUCTION_FILE_NAME}')
+            return self.reconstruction
 
-        print(f"Initialize new store directory in '{store_path}'\nconfig:{self.config}")
-        os.makedirs(store_path)
-        self._save_config(self.config, store_path)
+        print(f"Initialize new store directory in '{self.store_path}'\nconfig:{self.config}")
+        self._save_config(self.config, self.store_path)
         
-    def update(self, image: torch.Tensor, reconstruction: StringArtReconstruction, save_to_disk=False) -> None:
+    def update(self, reconstruction: StringArtReconstruction, save_to_disk=False) -> None:
+        self.reconstruction = reconstruction
         for listener in self.listeners:
-            listener.notify(image, reconstruction)
+            listener.notify()
         if save_to_disk:
-            self.save(image, reconstruction)
+            self.save()
     
-    def save(self, image: torch.Tensor, reconstruction: StringArtReconstruction) -> None:
-        store_path = self.get_store_path(image)
-        torch.save(image, f'{store_path}/{self._IMAGE_FILE_NAME}')
-        reconstruction.save(f'{store_path}/{self._RECONSTRUCTION_FILE_NAME}')
+    def save(self) -> None:
+        torch.save(self.image, f'{self.store_path}/{self._IMAGE_FILE_NAME}')
+        self.reconstruction.save(f'{self.store_path}/{self._RECONSTRUCTION_FILE_NAME}')
 
     def register(self, listener: StringArtListener) -> None:
         self.listeners.append(listener)
 
-    def get_store_path(self, image: torch.Tensor) -> str:
-        hash = self._generate_config_hash(self.config, image)
-        return f'{self.config.store_path}/{hash}'
-
-    def _generate_config_hash(self, config: StringArtConfig, image: torch.Tensor, hash_length=20) -> str:
+    @staticmethod
+    def _generate_config_hash(config: StringArtConfig, image: torch.Tensor, hash_length=20) -> str:
         config_dict = asdict(config)
         config_dict['image'] = image
         config_str = ''.join(f'{key}:{value}' for key, value in sorted(config_dict.items()))
@@ -57,7 +60,8 @@ class StringArtStore:
         hash_hex = hash_object.hexdigest()
         return hash_hex[:hash_length]
 
-    def _save_config(self, config: StringArtConfig, store_path: str):
+    @staticmethod
+    def _save_config(config: StringArtConfig, store_path: str):
         config_dict = asdict(config)
         with open(f'{store_path}/config.yaml', 'w') as file:
             yaml.dump(config_dict, file)

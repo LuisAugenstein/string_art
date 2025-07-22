@@ -24,6 +24,6 @@ def test_radon_index_based():
                                 0,
                                 np.pi / 4])
 
-    s, alpha = edges.radon_parameter_based(edges_angle_based).T
+    s, alpha = edges.angle_to_radon_parameter_based(edges_angle_based).T
     assert torch.allclose(s, s_target)
     assert torch.allclose(alpha, alpha_target)
