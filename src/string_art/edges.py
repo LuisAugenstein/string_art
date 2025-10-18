@@ -18,7 +18,7 @@ type EdgesAngleBased = torch.Tensor
 """[N, 2]"""
 
 type EdgeRadonParameterBased = torch.Tensor
-"""[2] edge[0]=s, edge[1]=alpha where s,alpha are radon parameters defining a line through two pins"""
+"""[2] edge[0]=s, edge[1]=alpha where s,alpha are radon parameters defining a line through two pins for s in [-1, 1] and alpha in [0, pi]"""
 type EdgesRadonParameterBased = torch.Tensor
 """[N, 2]"""
 
@@ -62,6 +62,13 @@ def angle_based(pins_angle_based: PinsAngleBased, edges_index_based: EdgesIndexB
     """
     return pins_angle_based[edges_index_based]  # [N_edges, 2]
 
+
+def angle_to_index_based(pins_angle_based: PinsAngleBased, edges_angle_based: EdgesAngleBased) -> EdgesIndexBased:
+    pins_1d = pins_angle_based.squeeze()
+    matches = torch.abs(edges_angle_based.unsqueeze(-1) - pins_1d.unsqueeze(0).unsqueeze(1)) < 1e-3
+    edges_index_based = torch.argmax(matches.to(torch.int), dim=-1)
+    return edges_index_based
+
 def angle_to_point_based(edges_angle_based: EdgesAngleBased) -> EdgesPointBased:
     psi1 = edges_angle_based[:, 0] # [N]
     psi2 = edges_angle_based[:, 1] # [N]
@@ -96,7 +103,7 @@ def radon_parameter_to_radon_index_based(edges_radon_parameter_based: EdgesRadon
     """
     Parameters
     -
-    edges_radon_parameter_based: [N_edges, 2]  N edges each defined their two radon parameters s, alpha = edges[i]
+    edges_radon_parameter_based: [N_edges, 2]  N edges each defined by their two radon parameters s, alpha = edges[i]
     s_domain: [N_s]                    possible values for the radon parameter s (distance to center) in [-1, 1]
     alpha_domain: [N_alpha]            possible values for the radon parameter alpha (angle) in [0, pi)
 
@@ -115,11 +122,25 @@ def radon_parameter_to_radon_index_based(edges_radon_parameter_based: EdgesRadon
     return torch.stack([s_indices, alpha_indices], dim=1)  # [N_edges, 2]
 
 def radon_parameter_to_angle_based(edges_radon_parameter_based: EdgesRadonParameterBased) -> EdgesAngleBased:
+    """
+    Parameters
+    -
+    edges_radon_parameter_based: [N_edges, 2]  N edges each defined by their two radon parameters s, alpha = edges[i]
+
+    Returns
+    -
+    edges_angle_based: [N_edges, 2]  N edges each defined by two angles psi1, psi2 = edges[i]
+    """
     s = edges_radon_parameter_based[:, 0] # [N]
     alpha = edges_radon_parameter_based[:, 1] # [N]
-    psi1 = alpha - torch.arccos(s) # [N]
-    psi2 = alpha + torch.arccos(s) # [N]
-    return torch.stack([psi1, psi2], dim=1) # [N, 2]
+    alpha[s<0] += torch.pi 
+    e1 = s.abs() * torch.exp(alpha*1j) # [N]
+    e2 = (1-s**2).sqrt() * torch.exp((alpha + torch.pi/2)*1j) # [N]
+    edges_complex_point_based = torch.stack([e1 - e2, e1 + e2], dim=1) # [N, 2]
+    edges_angle_based = (torch.angle(edges_complex_point_based) + 2*torch.pi) % (2*torch.pi) # [N, 2]
+    edges_angle_based[edges_angle_based > 2*torch.pi - 1e-5] = 0.0 # [N, 2] 
+    edges_angle_based, _ = torch.sort(edges_angle_based, dim=1) # [N, 2]
+    return edges_angle_based # [N, 2]
 
 def distance_points_edge(points: PinsPointBased, edge: EdgePointBased) -> torch.Tensor:
     """

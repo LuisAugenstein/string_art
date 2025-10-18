@@ -4,7 +4,7 @@ from string_art.core.string_art_config import StringArtConfig
 
 @dataclass
 class RadonAlgorithmConfig(StringArtConfig):
-    n_radon_angles: int = 300
+    n_radon_angles: int = 400
     residual_threshold: float = 0.01
     line_darkness: float = 0.018
     p_min: float = 0.00008

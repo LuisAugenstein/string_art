@@ -60,16 +60,20 @@ class RadonAlgorithm(StringArtAlgorithm):
                 print('Optimization finished')
                 return
 
-            s, alpha = s_domain[s_index], alpha_domain[alpha_index]
-            p_line_theory = self._analytical_radon_line(alpha, s, alpha_domain, s_domain, line_lengths, self.config.t_start,
+            alpha_indomain, s_indomain = alpha_domain[alpha_index], s_domain[s_index]
+            p_line_theory = self._analytical_radon_line(alpha_indomain, s_indomain, alpha_domain, s_domain, line_lengths, self.config.t_start,
                                                 self.config.t_end, self.config.line_darkness, self.config.p_min)
             img_radon = img_radon - p_line_theory
             img_radon[s_index, alpha_index] = 0
 
             if (step+1) % 10 == 0:
                 print(f"{step+1:5d} {s_index:3d} {alpha_index:3d} {residual:5.4f}")
+            closest = torch.argmin((edges_radon_parameter_based - torch.tensor([s_indomain, alpha_indomain])).norm(dim=1))
+            s, alpha = edges_radon_parameter_based[closest]
             reconstruction.add_string(string_radon_parameter_based=(s, alpha))
             self.store.update(reconstruction)
+            
+        return reconstruction
 
     def _analytical_radon_line(self, alpha: float, s: float, alpha_domain, s_domain, line_lengths, t_start, t_end, line_darkness, p_min):
         ALPHA, S = np.meshgrid(alpha_domain, s_domain)

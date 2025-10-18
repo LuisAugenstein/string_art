@@ -101,7 +101,6 @@ ax_reconstruction.set_yticks([1, 0.5, 0, -0.5, -1])
 radon_title = ax_radon.set_title(f'Radon Transformed Image')
 ax_radon.set_ylabel(f's [{IMAGE_SIZE}] - line distance from center')
 ax_radon.set_xlabel(r'$\alpha$' + f' [{config.n_radon_angles}]- line angle')
-pi_positions = [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi]
 ax_radon.set_xticks([0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi])
 ax_radon.set_xticklabels(['0', r'$\frac{1}{4}\pi$', r'$\frac{1}{2}\pi$', r'$\frac{3}{4}\pi$', r'$\pi$'])
 ax_radon.set_yticks([1, 0.5, 0, -0.5, -1])

@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.collections import LineCollection
 from string_art import pins
 from string_art.core import StringArtConfig, StringArtStore
-from string_art.visualization import StringArtVisualizer
+from string_art.core.string_art_visualizer import StringArtVisualizer
 import matplotlib.pyplot as plt
 import numpy as np
 from string_art import edges
@@ -16,9 +16,6 @@ class DefaultVisualizer(StringArtVisualizer):
     fig: Figure
     reconstruction_title: Text
     line_collection: LineCollection
-
-    def __init__(self, config: StringArtConfig, store: StringArtStore):
-        super().__init__(config, store)
 
     def create_figure(self) -> None:
         self.fig, [ax_img, ax_reconstruction] = plt.subplots(1, 2, figsize=(15, 7))

@@ -10,8 +10,8 @@ from string_art.core.string_art_store import StringArtStore
 from string_art.algorithms import StringArtAlgorithm
 from string_art.algorithms.naive import NaiveAlgorithmConfig, NaiveAlgorithm
 from string_art.algorithms.radon import RadonAlgorithmConfig, RadonAlgorithm
-from string_art.visualization import StringArtVisualizer
-from string_art.visualization.default_visualizer import DefaultVisualizer
+from string_art.core.string_art_visualizer import StringArtVisualizer
+from string_art.core.default_visualizer import DefaultVisualizer
 
 @dataclass
 class StringArtGeneratorConfig(Protocol):

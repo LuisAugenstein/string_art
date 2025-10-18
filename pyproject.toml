@@ -8,6 +8,7 @@ dependencies = [
     "imageio>=2.37.0",
     "matplotlib>=3.10.3",
     "numpy>=2.3.1",
+    "pytest>=8.4.2",
     "pyyaml>=6.0.2",
     "scikit-image>=0.25.2",
     "scipy>=1.16.0",
@@ -17,3 +18,7 @@ dependencies = [
 ]
 [tool.uv]
 package = true
+
+[tool.pytest.ini_options]
+addopts = "-v"
+testpaths = ["tests"]
