@@ -18,9 +18,12 @@ img = generator.load_image("data/inputs/cat_400.png")
 
 # generate the string art reconstruction using the default configuration
 reconstruction = generator.generate(img)
+euler_path = generator.get_euler_path(reconstruction.strings)
+reconstruction.strings = euler_path
 
 visualizer = DefaultVisualizer(config, generator.store)
 visualizer.show_animation()
+
 
 pins_angle_based = pins.angle_based(config.n_pins)
 strings_index_based = edges.angle_to_index_based(pins_angle_based, reconstruction.strings)

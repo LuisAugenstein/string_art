@@ -1,5 +1,5 @@
 import pickle
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from string_art.edges import EdgesAngleBased
 
 @dataclass
@@ -15,3 +15,4 @@ class StringArtReconstruction:
         """Loads a StringArtReconstruction instance from disk using pickle."""
         with open(filepath, 'rb') as f:
             return pickle.load(f)
+        

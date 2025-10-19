@@ -4,6 +4,7 @@ from torchvision.transforms.v2 import Transform, Compose, ToDtype, Resize, Grays
 from typing import Protocol
 from dataclasses import dataclass
 from torchvision.io import decode_image
+from string_art.core.get_euler_path import get_euler_path
 from string_art.core.string_art_config import StringArtConfig
 from string_art.core.string_art_reconstruction import StringArtReconstruction
 from string_art.core.string_art_store import StringArtStore
@@ -12,6 +13,7 @@ from string_art.algorithms.naive import NaiveAlgorithmConfig, NaiveAlgorithm
 from string_art.algorithms.radon import RadonAlgorithmConfig, RadonAlgorithm
 from string_art.core.string_art_visualizer import StringArtVisualizer
 from string_art.core.default_visualizer import DefaultVisualizer
+from string_art.edges import EdgesAngleBased
 
 @dataclass
 class StringArtGeneratorConfig(Protocol):
@@ -69,6 +71,9 @@ class StringArtGenerator:
 
         self.store.save()
         return reconstruction
+    
+    def get_euler_path(self, strings: EdgesAngleBased) -> EdgesAngleBased:
+        return get_euler_path(strings)
 
     def _get_algorithm(self, config: StringArtConfig, store: StringArtStore) -> StringArtAlgorithm:
         match config:
